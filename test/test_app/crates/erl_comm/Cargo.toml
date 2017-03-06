@@ -1,0 +1,7 @@
+[package]
+name = "erl_comm"
+version = "0.1.0"
+authors = ["Daniel Goertzen <daniel.goertzen@gmail.com>"]
+
+[dependencies]
+byteorder = "0.4.2"

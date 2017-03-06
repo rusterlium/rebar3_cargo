@@ -1,0 +1,23 @@
+[root]
+name = "nifsys"
+version = "0.0.2"
+dependencies = [
+ "erlang_nif-sys 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "erlang_nif-sys"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "libc 0.2.20 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "libc"
+version = "0.2.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[metadata]
+"checksum erlang_nif-sys 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "090e31d560a133d7362d0a75e1f5d463011ef1257debd83f552936f8abfeab8a"
+"checksum libc 0.2.20 (registry+https://github.com/rust-lang/crates.io-index)" = "684f330624d8c3784fb9558ca46c4ce488073a8d22450415c5eb4f4cfb0d11b5"

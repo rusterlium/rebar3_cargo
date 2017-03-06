@@ -1,0 +1,11 @@
+[package]
+name = "nifsys"
+version = "0.0.2"
+authors = ["Daniel Goertzen <daniel.goertzen@gmail.com>"]
+
+[lib]
+name = "nifsys"
+crate-type = ["dylib"]
+
+[dependencies]
+erlang_nif-sys = "0.4"
