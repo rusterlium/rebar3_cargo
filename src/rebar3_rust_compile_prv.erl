@@ -1,4 +1,4 @@
--module(rebar3_rust_prv).
+-module(rebar3_rust_compile_prv).
 
 -export([init/1, do/1, format_error/1]).
 
@@ -6,7 +6,7 @@
 
 -define(PROVIDER, compile).
 -define(NAMESPACE, rust).
--define(DEPS, []).
+-define(DEPS, [{default,app_discovery}]).
 
 %% ===================================================================
 %% Public API
@@ -19,7 +19,7 @@ init(State) ->
             {module, ?MODULE},               % The module implementation of the task
             {bare, true},                    % The task can be run by the user, always true
             {deps, ?DEPS},                   % The list of dependencies
-            {example, "rebar3 compile"},     % How to use the plugin
+            {example, "rebar3 rust compile"},% How to use the plugin
             {opts, []},                      % list of options understood by the plugin
             {short_desc, "Compile Rust crates"},
             {desc, "Compile Rust crates"}

@@ -5,7 +5,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 start() ->
-    {ok, ExtPrg} = find_crate:find_executable(test_app, "erl_comm", "erl_comm"),
+    {ok, ExtPrg} = find_crate:find_executable(test_app, "erl_comm"),
     start(ExtPrg).
 
 start(ExtPrg) ->

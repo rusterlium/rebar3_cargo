@@ -6,7 +6,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 init() ->
-    {ok, Lib} = find_crate:find_library(test_app, "nifsys", "nifsys"),
+    {ok, Lib} = find_crate:find_library(test_app, "nifsys"),
     ok = erlang:load_nif(Lib, 0).
 
 static_atom() ->

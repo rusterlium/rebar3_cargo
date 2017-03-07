@@ -1,5 +1,5 @@
 {application, rebar3_rust,
- [{description, "A rebar plugin"},
+ [{description, "A rebar plugin to build Rust crates."},
   {vsn, "0.1.0"},
   {registered, []},
   {applications,

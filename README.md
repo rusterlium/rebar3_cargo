@@ -30,7 +30,9 @@ Use the plugin by adding the following to `rebar.config`:
 
 {provider_hooks, [
     {post, [
-       {compile, {rust, compile}}
+        {compile, {rust, compile}},
+        {clean, {rust, clean}},
+        {eunit, {rust, test}}
     ]}
 ]}.
 ```
