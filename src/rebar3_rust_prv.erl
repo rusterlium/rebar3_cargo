@@ -2,6 +2,8 @@
 
 -export([init/1, do/1, format_error/1]).
 
+-include_lib("kernel/include/file.hrl").
+
 -define(PROVIDER, compile).
 -define(NAMESPACE, rust).
 -define(DEPS, []).
@@ -13,6 +15,7 @@
 init(State) ->
     Provider = providers:create([
             {name, ?PROVIDER},               % The 'user friendly' name of the task
+            {namespace, ?NAMESPACE},
             {module, ?MODULE},               % The module implementation of the task
             {bare, true},                    % The task can be run by the user, always true
             {deps, ?DEPS},                   % The list of dependencies
@@ -45,9 +48,9 @@ get_apps(State) ->
 %% process for one application
 do_app(App, _State) ->
     Opts = rebar_app_info:opts(App),
-    PrivDir = rebar_app_info:priv_dir(App),
     AppDir = rebar_app_info:dir(App),
-
+    %PrivDir = rebar_app_info:priv_dir(App),  % ensure_dir/1 fails if priv not present (ref https://github.com/erlang/rebar3/issues/1173)
+    PrivDir = filename:join(AppDir, "priv"),
 
 
     Tomls = filelib:wildcard("crates/*/Cargo.toml", AppDir),
@@ -62,34 +65,34 @@ do_app(App, _State) ->
 
 do_crate(CrateDir, OutDir, _Opts) ->
 
-    %    Cargo = rebar_utils:find_executable("cargo"), % false or quoted string
-
     %% get the manifest
-    {ok, ManifestIOData} = rebar_utils:sh("cargo read-manifest", [{cd, CrateDir}, {use_stdout, true}]),
+    {ok, ManifestIOData} = rebar_utils:sh("cargo read-manifest", [{cd, CrateDir}, {use_stdout, false}]),
 
     %% extract just the targets that are to be built
-    #{targets := Targets0} = jsx:decode(ManifestIOData, [return_maps, attempt_atom]),
+    #{targets := Targets0, name := _CrateName} = jsx:decode(
+        erlang:iolist_to_binary(ManifestIOData),
+        [return_maps, {labels, attempt_atom}]
+    ),
+
 
     %% and tidy them up
     Targets = [ begin
-                    #{name := Name0, kind := Kind0} = Target,
+                    #{name := Name0, kind := [Kind0|_]} = Target,
                     Kind = case Kind0 of
                                <<"bin">>    -> bin;
                                <<"dylib">>  -> dylib;
                                <<"cdylib">> -> dylib
                            end,
                     Name = binary_to_list(Name0),
-                    #{name := Name, kind := Kind}
+                    #{name => Name, kind => Kind}
                 end || Target <- Targets0 ],
+
+    %OutDir = filename:join(OutDir0, CrateName),
 
     %% and build each target
     [ do_target(Target, CrateDir, OutDir) || Target <- Targets ],
 
-%%    io:format("ManifestIOData: \n~p\n", [ManifestIOData]),
-%%    io:format("os_type: ~p\n", [os_type()]),
-%%    io:format("OutDir: ~p\n", [OutDir]),
 
-    %filelib:ensure_dir(), % specify dummy filename
 
     % Don't do this for Rust because it parallelizes builds.  Rust builds can use gobs of RAM.
     % Instead let Cargo parallelize as desired.
@@ -98,19 +101,30 @@ do_crate(CrateDir, OutDir, _Opts) ->
     ok.
 
 
-do_target(#{kind := Kind, name := Name}, Target, CrateDir, OutDir) ->
+do_target(#{kind := Kind, name := Name}, CrateDir, OutDir) ->
     %% build artifacts individually because some need special args
-    Cmd = "cargo rustc --bin" ++ " " ++ linker_args(Kind),
+    KindSwitch = case Kind of
+                     bin -> "--bin " ++ Name;
+                     dylib -> "--lib"
+                 end,
+    LinkerArgs = linker_args(Kind),
+    Cmd = lists:flatten(
+        io_lib:format("cargo rustc --verbose ~s ~s", [KindSwitch, LinkerArgs])),
     {ok, _} = rebar_utils:sh(Cmd, [{cd, CrateDir}, {use_stdout, true}]),
 
     {DstName, SrcName} = target_filenames(Kind, Name),
+    SrcPath = filename:join([CrateDir, "target", "debug", SrcName]),
+    DstPath = filename:join([OutDir, DstName]),
 
 
-    ArtifactName =
-    TargetName = filename:join(OutDir, Name),
+    ok = filelib:ensure_dir(DstPath),
+
+    cp(SrcPath, DstPath),
+
 
     ok.
 
+%%
 -spec(target_filenames(bin|dylib, string()) -> {Dst::string(), Src::string()}).
 target_filenames(Kind, Name) -> target_filenames(Kind, Name, os_type()).
 target_filenames(bin, Name, win)   -> {Name ++ ".exe", Name ++ ".exe"};
@@ -131,5 +145,18 @@ os_type() ->
         {win32, nt} -> win;
         {unix, osx} -> osx;  %% FIXME: this is a guess.
         {unix, _} -> unix
+    end.
+
+cp(Src,Dst) ->
+    {ok,_} = file:copy(Src, Dst),
+
+    % sigh, file:copy() doesn't preserve executable bits, so copy that too
+    case os:type() of
+        {unix, _} ->
+            {ok, #file_info{mode = Mode}} = file:read_file_info(Src),
+            ok = file:change_mode(Dst, Mode),
+            ok;
+        {win32, _} ->
+            ok
     end.
 
