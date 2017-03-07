@@ -129,21 +129,21 @@ do_target(#{kind := Kind, name := Name}, CrateDir, OutDir) ->
 target_filenames(Kind, Name) -> target_filenames(Kind, Name, os_type()).
 target_filenames(bin, Name, win)   -> {Name ++ ".exe", Name ++ ".exe"};
 target_filenames(dylib, Name, win) -> {Name ++ ".dll", Name ++ ".dll"};
-target_filenames(bin, Name, osx)   -> {Name, Name};
-target_filenames(dylib, Name, osx) -> {"lib" ++ Name ++ ".so", "lib" ++ Name ++ ".dylib"};
+target_filenames(bin, Name, macos)   -> {Name, Name};
+target_filenames(dylib, Name, macos) -> {"lib" ++ Name ++ ".so", "lib" ++ Name ++ ".dylib"};
 target_filenames(bin, Name, unix)   -> {Name, Name};
 target_filenames(dylib, Name, unix) -> {"lib" ++ Name ++ ".so", "lib" ++ Name ++ ".so"}.
 
 %% OSX needs special args when linking a shared lib for Erlang.
 linker_args(Kind) -> linker_args(Kind, os_type()).
-linker_args(dylib, osx) -> "-- --codegen 'link-args=-flat_namespace -undefined suppress'";
+linker_args(dylib, macos) -> "-- --codegen 'link-args=-flat_namespace -undefined suppress'";
 linker_args(_, _) -> "".
 
 
 os_type() ->
     case os:type() of
         {win32, nt} -> win;
-        {unix, osx} -> osx;  %% FIXME: this is a guess.
+        {unix, darwin} -> macos;
         {unix, _} -> unix
     end.
 
