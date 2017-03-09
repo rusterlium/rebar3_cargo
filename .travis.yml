@@ -1,0 +1,18 @@
+language: erlang
+otp_release:
+  - 19.2
+
+sudo: required
+
+script: rebar3 ct
+
+before_install:
+  - curl https://static.rust-lang.org/rustup.sh | sh
+  - curl https://s3.amazonaws.com/rebar3/rebar3 >rebar3
+  - chmod +x rebar3
+  - mkdir -p ~/bin
+  - mv rebar3 ~/bin
+
+before_script:
+  - kerl list installations
+  - kerl list releases
