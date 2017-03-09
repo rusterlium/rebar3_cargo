@@ -25,7 +25,7 @@ Use the plugin by adding the following to `rebar.config`:
 
 ``` erlang
 {plugins, [
-    { rebar3_rust, ".*", {git, "https://github.com/goertzenator/rebar3_rust", {branch", "master"}}}
+    { rebar3_rust, ".*", {git, "https://github.com/goertzenator/rebar3_rust", {branch, "master"}}}
 ]}.
 
 {provider_hooks, [

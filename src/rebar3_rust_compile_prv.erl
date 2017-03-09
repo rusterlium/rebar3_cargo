@@ -68,6 +68,11 @@ do_crate(CrateDir, OutDir, _Opts) ->
     %% get the manifest
     {ok, ManifestIOData} = rebar_utils:sh("cargo read-manifest", [{cd, CrateDir}, {use_stdout, false}]),
 
+    io:format("file:get_cwd() = ~p\n", [file:get_cwd()]),
+    %io:format("code:all_loaded() = ~p\n", [code:all_loaded()]),
+    io:format("code:get_path() = ~p\n", [code:get_path()]),
+
+
     %% extract just the targets that are to be built
     #{targets := Targets0, name := _CrateName} = jsx:decode(
         erlang:iolist_to_binary(ManifestIOData),
