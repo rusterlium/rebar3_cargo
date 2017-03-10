@@ -5,9 +5,9 @@
 -include_lib("common_test/include/ct.hrl").
 
 
-all() -> [test_test_app, test_fails_compile, test_fails_test].
+all() -> [test_test_app, test_fails_compile, test_fails_test, test_release_debug].
 
-test_apps() -> ["test_app", "fails_compile", "fails_test"].
+test_apps() -> ["test_app", "fails_compile", "fails_test", "release_debug"].
 
 
 init_per_suite(Config) ->
@@ -48,7 +48,7 @@ test_test_app(Config) ->
                                   end]),
 
     false = filelib:is_file(ErlCommName),
-    {ok, _} = rebar_utils:sh("rebar3 compile", [{cd, AppDir}, {use_stdout, true}]),
+    {ok, _} = rebar_utils:sh("rebar3 as prod compile", [{cd, AppDir}, {use_stdout, true}]),
     true = filelib:is_file(ErlCommName),
     {ok, _} = rebar_utils:sh("rebar3 clean", [{cd, AppDir}, {use_stdout, true}]),
     false = filelib:is_file(ErlCommName),
@@ -71,4 +71,21 @@ test_fails_test(Config) ->
     #{priv_dir := PrivDir} = maps:from_list(Config),
     AppDir = filename:join(PrivDir, "fails_test"),
     {error, _} = rebar_utils:sh("rebar3 eunit", [{cd, AppDir}, {use_stdout, true}, return_on_error]),
+    ok.
+
+%% check debug vs release builds
+test_release_debug(Config) ->
+    #{priv_dir := PrivDir} = maps:from_list(Config),
+    AppDir = filename:join(PrivDir, "release_debug"),
+    ExeName = filename:join([AppDir, "priv", "crates", "build_type", "build_type" ++ case os:type() of
+                                                                                         {win32, _} -> ".exe";
+                                                                                         {unix, _} -> ""
+                                                                                     end]),
+
+    {ok, _} = rebar_utils:sh("rebar3 compile", [{cd, AppDir}, {use_stdout, true}]),
+    {ok, "debug"} = rebar_utils:sh(ExeName, [{cd, AppDir}, {use_stdout, true}]),
+
+    {ok, _} = rebar_utils:sh("rebar3 as prod compile", [{cd, AppDir}, {use_stdout, true}]),
+    {ok, "release"} = rebar_utils:sh(ExeName, [{cd, AppDir}, {use_stdout, true}]),
+
     ok.

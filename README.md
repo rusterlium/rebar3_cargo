@@ -13,7 +13,6 @@ As of this writing `rebar3_rust` will build crates on
 linux and passes tests, however it is still under construction.
 
 Todo:
-- debug/release builds
 - allow cargo/rust compile flags
 - --target flag handling
 - Appveyor CI
@@ -30,7 +29,7 @@ Use the plugin by adding the following to `rebar.config`:
 
 {provider_hooks, [
     {post, [
-        {compile, {rust, compile}},
+        {compile, {rust, build}},
         {clean, {rust, clean}},
         {eunit, {rust, test}}
     ]}
@@ -38,7 +37,11 @@ Use the plugin by adding the following to `rebar.config`:
 ```
 
 This will automatically download and use `rebar3_rust`.  Crates will be compiled whenever the containing app is compiled.
+The cargo `--release` switch will be used when the `prod` profile is active.  For example:
 
+```
+rebar3 as prod compile
+```
 
 # Application structure with Rust crates
 To add crates to an Erlang application, place them in a `crates/` folder.  All crates found within will be built and resulting artifacts will be placed in the `priv/crates/` folder.

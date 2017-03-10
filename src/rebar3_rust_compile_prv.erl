@@ -4,7 +4,7 @@
 
 -include_lib("kernel/include/file.hrl").
 
--define(PROVIDER, compile).
+-define(PROVIDER, build).
 -define(NAMESPACE, rust).
 -define(DEPS, [{default,app_discovery}]).
 
@@ -19,7 +19,7 @@ init(State) ->
             {module, ?MODULE},               % The module implementation of the task
             {bare, true},                    % The task can be run by the user, always true
             {deps, ?DEPS},                   % The list of dependencies
-            {example, "rebar3 rust compile"},% How to use the plugin
+            {example, "rebar3 rust build"},  % How to use the plugin
             {opts, []},                      % list of options understood by the plugin
             {short_desc, "Compile Rust crates"},
             {desc, "Compile Rust crates"}
@@ -46,12 +46,10 @@ get_apps(State) ->
     end.
 
 %% process for one application
-do_app(App, _State) ->
-    Opts = rebar_app_info:opts(App),
+do_app(App, State) ->
     AppDir = rebar_app_info:dir(App),
     %PrivDir = rebar_app_info:priv_dir(App),  % ensure_dir/1 fails if priv not present (ref https://github.com/erlang/rebar3/issues/1173)
     PrivDir = filename:join(AppDir, "priv"),
-
 
     Tomls = filelib:wildcard("crates/*/Cargo.toml", AppDir),
     AbsTomls = [ filename:absname(T, AppDir) || T <- Tomls ],
@@ -59,21 +57,16 @@ do_app(App, _State) ->
 
     [ begin
           OutDir = filename:join([PrivDir, "crates", filename:basename(CrateDir)]),
-          do_crate(CrateDir, OutDir, Opts)
+          do_crate(CrateDir, OutDir, State)
       end || CrateDir <- CrateDirs ],
     ok.
 
-do_crate(CrateDir, OutDir, _Opts) ->
+do_crate(CrateDir, OutDir, State) ->
 
     %% get the manifest
     {ok, ManifestIOData} = rebar_utils:sh("cargo read-manifest", [{cd, CrateDir}, {use_stdout, false}]),
 
-    io:format("file:get_cwd() = ~p\n", [file:get_cwd()]),
-    %io:format("code:all_loaded() = ~p\n", [code:all_loaded()]),
-    io:format("code:get_path() = ~p\n", [code:get_path()]),
-
-
-    %% extract just the targets that are to be built
+    %% extract just the targets section
     #{targets := Targets0, name := _CrateName} = jsx:decode(
         erlang:iolist_to_binary(ManifestIOData),
         [return_maps, {labels, attempt_atom}]
@@ -92,40 +85,40 @@ do_crate(CrateDir, OutDir, _Opts) ->
                     #{name => Name, kind => Kind}
                 end || Target <- Targets0 ],
 
-    %OutDir = filename:join(OutDir0, CrateName),
-
     %% and build each target
-    [ do_target(Target, CrateDir, OutDir) || Target <- Targets ],
+    [ do_target(Target, CrateDir, OutDir, State) || Target <- Targets ],
 
-
-
-    % Don't do this for Rust because it parallelizes builds.  Rust builds can use gobs of RAM.
-    % Instead let Cargo parallelize as desired.
-    % Furthermore Crates don't neccessarily fit the file translation model this function uses.
-    %rebar_base_compiler:run(Opts, [], FoundFiles, CompileFun)
     ok.
 
 
-do_target(#{kind := Kind, name := Name}, CrateDir, OutDir) ->
-    %% build artifacts individually because some need special args
+do_target(#{kind := Kind, name := Name}, CrateDir, OutDir, State) ->
+    %% Build artifacts individually because some need special link args (looking at you mac).
+    %% If this changes in the future "cargo build" can be used to build everything instead.
     KindSwitch = case Kind of
-                     bin -> "--bin " ++ Name;
-                     dylib -> "--lib"
+                     bin -> " --bin " ++ Name;
+                     dylib -> " --lib"
                  end,
+
+    %% debug vs release build (or rebar3 prod profile vs no prod profile)
+    {ReleaseSwitch, TargetPathFrag} = case lists:member(prod, rebar_state:current_profiles(State)) of
+                        true -> {" --release", "release"};
+                        false -> {"", "debug"}
+                    end,
+    VerboseSwitch = " --verbose",
     LinkerArgs = linker_args(Kind),
+
+    %% finally do the build
     Cmd = lists:flatten(
-        io_lib:format("cargo rustc --verbose ~s ~s", [KindSwitch, LinkerArgs])),
+        ["cargo rustc", ReleaseSwitch, KindSwitch, VerboseSwitch, LinkerArgs]),
+
     {ok, _} = rebar_utils:sh(Cmd, [{cd, CrateDir}, {use_stdout, true}]),
 
+    %% move target binary to its final location in priv/
     {DstName, SrcName} = target_filenames(Kind, Name),
-    SrcPath = filename:join([CrateDir, "target", "debug", SrcName]),
+    SrcPath = filename:join([CrateDir, "target", TargetPathFrag, SrcName]),
     DstPath = filename:join([OutDir, DstName]),
-
-
     ok = filelib:ensure_dir(DstPath),
-
     cp(SrcPath, DstPath),
-
 
     ok.
 
@@ -141,7 +134,7 @@ target_filenames(dylib, Name, unix) -> {"lib" ++ Name ++ ".so", "lib" ++ Name ++
 
 %% OSX needs special args when linking a shared lib for Erlang.
 linker_args(Kind) -> linker_args(Kind, os_type()).
-linker_args(dylib, macos) -> "-- --codegen 'link-args=-flat_namespace -undefined suppress'";
+linker_args(dylib, macos) -> " -- --codegen 'link-args=-flat_namespace -undefined suppress'";
 linker_args(_, _) -> "".
 
 
