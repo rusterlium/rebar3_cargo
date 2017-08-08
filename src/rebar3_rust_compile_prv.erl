@@ -104,12 +104,11 @@ do_target(#{kind := Kind, name := Name}, CrateDir, OutDir, State) ->
                         true -> {" --release", "release"};
                         false -> {"", "debug"}
                     end,
-    VerboseSwitch = " --verbose",
     LinkerArgs = linker_args(Kind),
 
     %% finally do the build
     Cmd = lists:flatten(
-        ["cargo rustc", ReleaseSwitch, KindSwitch, VerboseSwitch, LinkerArgs]),
+        ["cargo rustc", ReleaseSwitch, KindSwitch, LinkerArgs]),
 
     {ok, _} = rebar_utils:sh(Cmd, [{cd, CrateDir}, {use_stdout, true}]),
 
