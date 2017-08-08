@@ -104,7 +104,7 @@ do_target(#{kind := Kind, name := Name}, CrateDir, OutDir, State) ->
                         true -> {" --release", "release"};
                         false -> {"", "debug"}
                     end,
-    VerboseSwitch = " --verbose",
+    VerboseSwitch = "",
     LinkerArgs = linker_args(Kind),
 
     %% finally do the build
