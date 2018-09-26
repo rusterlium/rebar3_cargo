@@ -1,20 +1,18 @@
-#rebar3_rust
+# `rebar3_rust`
 [![Build Status](https://travis-ci.org/goertzenator/rebar3_rust.svg?branch=master)](https://travis-ci.org/goertzenator/rebar3_rust)
 
 This plugin for [`rebar3`](https://www.rebar3.org/) enables the automatic building of Rust crates in an Erlang application.
 The plugin will build all crates in the `crates` directory and copy all binary outputs to `priv/crates/<cratename>/<binary>`.
 See the test application in this repository for an example of a port program and NIF module implemented in Rust.
 
-
-
-##Todo list
+## Todo list
 
 As of this writing `rebar3_rust` will build crates on
 linux and passes tests, however it is still under construction.
 
 Todo:
 - allow cargo/rust compile flags
-- --target flag handling
+- `--target` flag handling
 - Appveyor CI
 - maybe external crate support using cargo clone
 
@@ -39,7 +37,7 @@ Use the plugin by adding the following to `rebar.config`:
 This will automatically download and use `rebar3_rust`.  Crates will be compiled whenever the containing app is compiled.
 The cargo `--release` switch will be used when the `prod` profile is active.  For example:
 
-```
+``` sh
 rebar3 as prod compile
 ```
 
@@ -72,5 +70,4 @@ myapp/
                 bar_port
 
 ```
-
 
