@@ -37,11 +37,7 @@ do(State) ->
 
 
 test_app(App) ->
-    AppDir = rebar_app_info:dir(App),
-
-    Tomls = filelib:wildcard("crates/*/Cargo.toml", AppDir),
-    AbsTomls = [ filename:absname(T, AppDir) || T <- Tomls ],
-    CrateDirs = [ filename:dirname( T) || T <- AbsTomls ],
+    CrateDirs = rebar3_rust_util:get_crate_dirs(App),
 
     %% test individual crates
     [ test_crate(CrateDir) || CrateDir <- CrateDirs ],

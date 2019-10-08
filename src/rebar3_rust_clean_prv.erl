@@ -36,19 +36,11 @@ do(State) ->
     {ok, State}.
 
 clean_app(App) ->
-
-    AppDir = rebar_app_info:dir(App),
-    PrivDir = filename:join(AppDir, "priv"),
-
-    Tomls = filelib:wildcard("crates/*/Cargo.toml", AppDir),
-    AbsTomls = [ filename:absname(T, AppDir) || T <- Tomls ],
-    CrateDirs = [ filename:dirname( T) || T <- AbsTomls ],
+    PrivDir = rebar3_rust_util:get_priv_dir(App),
+    CrateDirs = rebar3_rust_util:get_crate_dirs(App),
 
     %% clean individual crates
     [ clean_crate(CrateDir) || CrateDir <- CrateDirs ],
-
-    %% delete downloaded external crates
-    ok = rebar_file_utils:rm_rf(filename:join(AppDir, "extern_crates")),
 
     %% delete priv/crates
     ok = rebar_file_utils:rm_rf(filename:join(PrivDir, "crates")),

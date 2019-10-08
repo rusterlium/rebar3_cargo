@@ -47,13 +47,8 @@ get_apps(State) ->
 
 %% process for one application
 do_app(App, State) ->
-    AppDir = rebar_app_info:dir(App),
-    %PrivDir = rebar_app_info:priv_dir(App),  % ensure_dir/1 fails if priv not present (ref https://github.com/erlang/rebar3/issues/1173)
-    PrivDir = filename:join(AppDir, "priv"),
-
-    Tomls = filelib:wildcard("crates/*/Cargo.toml", AppDir),
-    AbsTomls = [ filename:absname(T, AppDir) || T <- Tomls ],
-    CrateDirs = [ filename:dirname( T) || T <- AbsTomls ],
+    PrivDir = rebar3_rust_util:get_priv_dir(App),
+    CrateDirs = rebar3_rust_util:get_crate_dirs(),
 
     [ begin
           OutDir = filename:join([PrivDir, "crates", filename:basename(CrateDir)]),
