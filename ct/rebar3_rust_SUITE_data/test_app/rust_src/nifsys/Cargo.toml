@@ -8,4 +8,4 @@ name = "nifsys"
 crate-type = ["dylib"]
 
 [dependencies]
-erlang_nif-sys = "0.4"
+rustler_sys = "2.0.0"

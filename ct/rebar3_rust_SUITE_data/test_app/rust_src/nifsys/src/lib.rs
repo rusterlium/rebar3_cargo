@@ -1,6 +1,6 @@
 #[macro_use]
-extern crate erlang_nif_sys;
-use erlang_nif_sys::*;
+extern crate rustler_sys;
+use rustler_sys::*;
 use std::mem::uninitialized;
 
 /// Create NIF module data and init function.

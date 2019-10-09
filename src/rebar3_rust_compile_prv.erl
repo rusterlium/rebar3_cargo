@@ -48,7 +48,7 @@ get_apps(State) ->
 %% process for one application
 do_app(App, State) ->
     PrivDir = rebar3_rust_util:get_priv_dir(App),
-    CrateDirs = rebar3_rust_util:get_crate_dirs(),
+    CrateDirs = rebar3_rust_util:get_crate_dirs(App),
 
     [ begin
           OutDir = filename:join([PrivDir, "crates", filename:basename(CrateDir)]),
