@@ -37,6 +37,7 @@ do(State) ->
     [ do_app(App, State) || App <- get_apps(State) ],
     {ok, State}.
 
+
 get_apps(State) ->
     case rebar_state:current_app(State) of
         undefined ->
@@ -45,111 +46,148 @@ get_apps(State) ->
             [AppInfo]
     end.
 
+
 %% process for one application
 do_app(App, State) ->
-    PrivDir = rebar3_rust_util:get_priv_dir(App),
-    CrateDirs = rebar3_rust_util:get_crate_dirs(App),
+    IsRelease = lists:member(prod, rebar_state:current_profiles(State)),
 
-    [ begin
-          OutDir = filename:join([PrivDir, "crates", filename:basename(CrateDir)]),
-          do_crate(CrateDir, OutDir, State)
-      end || CrateDir <- CrateDirs ],
-    ok.
+    ReleaseFlag =
+    case IsRelease of
+        true -> " --release";
+        false -> ""
+    end,
 
-do_crate(CrateDir, OutDir, State) ->
-
-    %% get the manifest
-    {ok, ManifestIOData} = rebar_utils:sh("cargo read-manifest", [{cd, CrateDir}, {use_stdout, false}]),
-
-    %% extract just the targets section
-    #{targets := Targets0, name := _CrateName} = jsx:decode(
-        erlang:iolist_to_binary(ManifestIOData),
-        [return_maps, {labels, attempt_atom}]
+    {ok, MetadataS} =
+    rebar_utils:sh(
+        lists:flatten(["cargo metadata --format-version=1 --no-deps"]),
+        [{use_stdout, false}]
     ),
 
+    Metadata = jsx:decode(list_to_binary(MetadataS), [return_maps]),
+    Packages = maps:from_list([
+        {maps:get(<<"id">>, M), M}
+        || M <- maps:get(<<"packages">>, Metadata)
+    ]),
 
-    %% and tidy them up
-    Targets = [ begin
-                    #{name := Name0, kind := [Kind0|_]} = Target,
-                    Kind = case Kind0 of
-                               <<"bin">>    -> bin;
-                               <<"dylib">>  -> dylib;
-                               <<"cdylib">> -> dylib
-                           end,
-                    Name = binary_to_list(Name0),
-                    #{name => Name, kind => Kind}
-                end || Target <- Targets0 ],
+    {ok, Output} =
+    rebar_utils:sh(
+        lists:flatten(["cargo build --message-format=json-diagnostic-short --quiet", ReleaseFlag]),
+        [{env, env()}, {use_stdout, false}]
+    ),
 
-    %% and build each target
-    [ do_target(Target, CrateDir, OutDir, State) || Target <- Targets ],
+    Splitted = string:split(Output, "\n", all),
+    Artifacts = lists:foldl(
+        fun ("", Artifacts) ->
+                Artifacts;
+
+            (Line, Artifacts) ->
+                Map = jsx:decode(list_to_binary(Line), [return_maps]),
+                #{
+                    <<"reason">> := Reason,
+                    <<"package_id">> := PackageId
+                } = Map,
+
+                case Reason of
+                    <<"compiler-artifact">> when is_map_key(PackageId, Packages) ->
+                        Artifacts#{
+                            PackageId => {
+                                maps:get(<<"fresh">>, Map, false), maps:get(<<"filenames">>, Map)
+                            }
+                        };
+                    _ ->
+                        Artifacts
+                end
+        end,
+        #{},
+        Splitted
+    ),
+
+    lists:foreach(
+        fun (Id) ->
+            do_crate(maps:get(Id, Packages), maps:get(Id, Artifacts), IsRelease, App)
+        end,
+        maps:keys(Artifacts)
+    ),
+
+    ok.
+
+
+do_crate(Metadata, {_IsFresh, Files}, IsRelease, App) ->
+    #{
+        <<"name">> := Name,
+        <<"version">> := Version
+    } = Metadata,
+
+    Type = case IsRelease of
+        true ->
+            "release";
+        false ->
+            "debug"
+    end,
+
+    PrivDir = rebar3_rust_util:get_priv_dir(App),
+    OutDir = filename:join([PrivDir, Name, Version, Type]),
+
+    filelib:ensure_dir(filename:join([OutDir, "dummy"])),
+
+    rebar_api:info("Copying artifacts for ~s ~s...", [Name, Version]),
+    NifLoadPaths = lists:filtermap(
+        fun (F) ->
+            case cp(F, OutDir) of
+                {ok, NLP} ->
+                    {true, NLP};
+                _ ->
+                    false
+            end
+        end,
+        Files
+    ),
+
+    % TODO Either inject define opts into erl_opts or write an include file
 
     ok.
 
 
-do_target(#{kind := Kind, name := Name}, CrateDir, OutDir, State) ->
-    %% Build artifacts individually because some need special link args (looking at you mac).
-    %% If this changes in the future "cargo build" can be used to build everything instead.
-    KindSwitch = case Kind of
-                     bin -> " --bin " ++ Name;
-                     dylib -> " --lib"
-                 end,
-
-    %% debug vs release build (or rebar3 prod profile vs no prod profile)
-    {ReleaseSwitch, TargetPathFrag} = case lists:member(prod, rebar_state:current_profiles(State)) of
-                        true -> {" --release", "release"};
-                        false -> {"", "debug"}
-                    end,
-    VerboseSwitch = "",
-    LinkerArgs = linker_args(Kind),
-
-    %% finally do the build
-    Cmd = lists:flatten(
-        ["cargo rustc", ReleaseSwitch, KindSwitch, VerboseSwitch, LinkerArgs]),
-
-    {ok, _} = rebar_utils:sh(Cmd, [{cd, CrateDir}, {use_stdout, true}]),
-
-    %% move target binary to its final location in priv/
-    {DstName, SrcName} = target_filenames(Kind, Name),
-    SrcPath = filename:join([CrateDir, "target", TargetPathFrag, SrcName]),
-    DstPath = filename:join([OutDir, DstName]),
-    ok = filelib:ensure_dir(DstPath),
-    cp(SrcPath, DstPath),
-
-    ok.
-
-%%
--spec(target_filenames(bin|dylib, string()) -> {Dst::string(), Src::string()}).
-target_filenames(Kind, Name) -> target_filenames(Kind, Name, os_type()).
-target_filenames(bin, Name, win)   -> {Name ++ ".exe", Name ++ ".exe"};
-target_filenames(dylib, Name, win) -> {Name ++ ".dll", Name ++ ".dll"};
-target_filenames(bin, Name, macos)   -> {Name, Name};
-target_filenames(dylib, Name, macos) -> {"lib" ++ Name ++ ".so", "lib" ++ Name ++ ".dylib"};
-target_filenames(bin, Name, unix)   -> {Name, Name};
-target_filenames(dylib, Name, unix) -> {"lib" ++ Name ++ ".so", "lib" ++ Name ++ ".so"}.
-
-%% OSX needs special args when linking a shared lib for Erlang.
-linker_args(Kind) -> linker_args(Kind, os_type()).
-linker_args(dylib, macos) -> " -- --codegen 'link-args=-flat_namespace -undefined suppress'";
-linker_args(_, _) -> "".
 
 
-os_type() ->
+
+env() ->
     case os:type() of
-        {win32, nt} -> win;
-        {unix, darwin} -> macos;
-        {unix, _} -> unix
+        {unix, darwin} ->
+            [{"RUSTFLAGS", "--codegen 'link-args=-flat_namespace -undefined suppress'"}];
+        _ ->
+            []
     end.
 
-cp(Src,Dst) ->
-    {ok,_} = file:copy(Src, Dst),
 
-    % sigh, file:copy() doesn't preserve executable bits, so copy that too
-    case os:type() of
-        {unix, _} ->
-            {ok, #file_info{mode = Mode}} = file:read_file_info(Src),
-            ok = file:change_mode(Dst, Mode),
-            ok;
-        {win32, _} ->
-            ok
+cp(Src, Dst) ->
+    OsType = os:type(),
+    Ext = filename:extension(Src),
+    Fname = filename:basename(Src),
+
+    case check_extension(Ext, OsType) of
+        true ->
+            rebar_api:info("  Copying ~s...", [Fname]),
+            OutPath = filename:join([
+                Dst,
+                filename:basename(Src)
+            ]),
+
+            {ok, _} = file:copy(Src, OutPath),
+
+            Len = byte_size(OutPath) - byte_size(Ext),
+
+            NifLoadPath = binary:part(OutPath, 0, Len),
+            % rebar_api:info("  Load as erlang:load_nif(~p, 0).", [NifLoadPath]);
+
+            {ok, NifLoadPath};
+        _ ->
+            rebar_api:debug("  Ignoring ~s", [Fname]),
+            {error, ignored}
     end.
 
+
+check_extension(<<".dll">>, {win32, _}) -> true;
+check_extension(<<".dylib">>, {unix, darwin}) -> true;
+check_extension(<<".so">>, {unix, Os}) when Os =/= darwin -> true;
+check_extension(_, _) -> false.

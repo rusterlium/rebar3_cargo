@@ -28,4 +28,4 @@ get_crate_dirs(App) ->
 get_priv_dir(App) ->
     %PrivDir = rebar_app_info:priv_dir(App),  % ensure_dir/1 fails if priv not present (ref https://github.com/erlang/rebar3/issues/1173)
     AppDir = rebar_app_info:dir(App),
-    filename:join(AppDir, "priv").
+    filename:join([AppDir, "priv", "crates"]).
