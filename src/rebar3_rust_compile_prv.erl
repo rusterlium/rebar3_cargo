@@ -34,18 +34,18 @@ format_error(Reason) ->
 -spec do(rebar_state:t()) -> {ok, rebar_state:t()} | {error, string()}.
 do(State) ->
     %% execute for each app
-    [ do_app(App, State) || App <- get_apps(State) ],
+    lists:foldl(fun do_app/2, State, get_apps(State)),
     {ok, State}.
 
-
+-spec get_apps(rebar_state:t()) -> [rebar_app_info:t()].
 get_apps(State) ->
     case rebar_state:current_app(State) of
         undefined ->
+            rebar_api:info("No current app, using project apps"),
             rebar_state:project_apps(State);
         AppInfo ->
             [AppInfo]
     end.
-
 
 %% process for one application
 do_app(App, State) ->
@@ -102,14 +102,26 @@ do_app(App, State) ->
         Splitted
     ),
 
-    lists:foreach(
-        fun (Id) ->
-            do_crate(maps:get(Id, Packages), maps:get(Id, Artifacts), IsRelease, App)
+    NifLoadPaths =
+    lists:foldl(
+        fun (Id, Map) ->
+            {Name, Path} =
+            do_crate(
+                maps:get(Id, Packages),
+                maps:get(Id, Artifacts),
+                IsRelease,
+                App
+            ),
+            Map#{ Name => Path }
         end,
+        #{},
         maps:keys(Artifacts)
     ),
 
-    ok.
+    rebar_api:info("Writing crates header...", []),
+    write_header(App, NifLoadPaths),
+    % TODO: Prepend ebin/ to include paths
+    App.
 
 
 do_crate(Metadata, {_IsFresh, Files}, IsRelease, App) ->
@@ -131,7 +143,7 @@ do_crate(Metadata, {_IsFresh, Files}, IsRelease, App) ->
     filelib:ensure_dir(filename:join([OutDir, "dummy"])),
 
     rebar_api:info("Copying artifacts for ~s ~s...", [Name, Version]),
-    NifLoadPaths = lists:filtermap(
+    [NifLoadPath] = lists:filtermap(
         fun (F) ->
             case cp(F, OutDir) of
                 {ok, NLP} ->
@@ -143,12 +155,7 @@ do_crate(Metadata, {_IsFresh, Files}, IsRelease, App) ->
         Files
     ),
 
-    % TODO Either inject define opts into erl_opts or write an include file
-
-    ok.
-
-
-
+    {Name, NifLoadPath}.
 
 
 env() ->
@@ -158,6 +165,26 @@ env() ->
         _ ->
             []
     end.
+
+
+-spec write_header(rebar_app_info:t(), #{ binary() => filename:type() }) ->
+    ok.
+write_header(App, NifLoadPaths) ->
+    Ebin = rebar_app_info:ebin_dir(App),
+
+    Define = "CRATES_HRL",
+
+    Hrl = [
+        "-ifndef(", Define, ").\n",
+        "-define(", Define, ", 1).\n",
+        [
+            io_lib:format("-define(crate_~s, ~p).~n", [Name, Path])
+            || {Name, Path} <- maps:to_list(NifLoadPaths)
+        ],
+        "-endif.\n"
+    ],
+
+    file:write_file(filename:join(Ebin, "crates.hrl"), Hrl).
 
 
 cp(Src, Dst) ->
