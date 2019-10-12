@@ -8,6 +8,7 @@
 -define(NAMESPACE, rust).
 -define(DEPS, [{default,app_discovery}]).
 
+
 %% ===================================================================
 %% Public API
 %% ===================================================================
@@ -119,14 +120,15 @@ do_app(App, State) ->
         maps:keys(Artifacts)
     ),
 
-    rebar_api:info("Writing crates header...", []),
-
     ErlOpts = get_defines(NifLoadPaths),
 
     Opts = rebar_app_info:opts(App),
 
     ErlOpts1 = ErlOpts ++ rebar_opts:get(Opts, erl_opts, []),
     Opts1 = rebar_opts:set(Opts, erl_opts, ErlOpts1),
+
+    rebar_api:info("Writing crates header...", []),
+    write_header(App, NifLoadPaths),
 
     rebar_app_info:opts(App, Opts1).
 
@@ -172,6 +174,27 @@ env() ->
         _ ->
             []
     end.
+
+
+-spec write_header(rebar_app_info:t(), #{ binary() => filename:type() }) -> ok.
+write_header(App, NifLoadPaths) ->
+    Define = "CRATES_HRL",
+
+    Hrl = [
+        "-ifndef(", Define, ").\n",
+        "-define(", Define, ", 1).\n",
+        [
+            io_lib:format("-define(crate_~s, ~p).~n", [Name, undefined])
+            || Name <- maps:keys(NifLoadPaths)
+        ],
+        "-endif.\n"
+    ],
+
+    OutDir = rebar_app_info:dir(App),
+    OutPath = filename:join([OutDir, "src", "crates.hrl"]),
+    filelib:ensure_dir(OutPath),
+
+    file:write_file(OutPath, Hrl).
 
 
 get_defines(NifLoadPaths) ->
