@@ -34,20 +34,21 @@ format_error(Reason) ->
 -spec do(rebar_state:t()) -> {ok, rebar_state:t()} | {error, string()}.
 do(State) ->
     %% execute for each app
-    lists:foldl(fun do_app/2, State, get_apps(State)),
-    {ok, State}.
-
--spec get_apps(rebar_state:t()) -> [rebar_app_info:t()].
-get_apps(State) ->
+    State1 =
     case rebar_state:current_app(State) of
         undefined ->
-            rebar_api:info("No current app, using project apps"),
-            rebar_state:project_apps(State);
+            rebar_api:info("No current app, using project apps", []),
+            NewApps =
+            lists:foldl(fun do_app/2, State, rebar_state:project_apps(State)),
+            rebar_state:project_apps(State, NewApps);
         AppInfo ->
-            [AppInfo]
-    end.
+            rebar_state:current_app(State, do_app(AppInfo, State))
+    end,
+
+    {ok, State1}.
 
 %% process for one application
+-spec do_app(rebar_app_info:t(), rebar_state:t()) -> rebar_app_info:t().
 do_app(App, State) ->
     IsRelease = lists:member(prod, rebar_state:current_profiles(State)),
 
@@ -119,9 +120,15 @@ do_app(App, State) ->
     ),
 
     rebar_api:info("Writing crates header...", []),
-    write_header(App, NifLoadPaths),
-    % TODO: Prepend ebin/ to include paths
-    App.
+
+    ErlOpts = get_defines(NifLoadPaths),
+
+    Opts = rebar_app_info:opts(App),
+
+    ErlOpts1 = ErlOpts ++ rebar_opts:get(Opts, erl_opts, []),
+    Opts1 = rebar_opts:set(Opts, erl_opts, ErlOpts1),
+
+    rebar_app_info:opts(App, Opts1).
 
 
 do_crate(Metadata, {_IsFresh, Files}, IsRelease, App) ->
@@ -167,26 +174,24 @@ env() ->
     end.
 
 
--spec write_header(rebar_app_info:t(), #{ binary() => filename:type() }) ->
-    ok.
-write_header(App, NifLoadPaths) ->
-    Ebin = rebar_app_info:ebin_dir(App),
-
-    Define = "CRATES_HRL",
-
-    Hrl = [
-        "-ifndef(", Define, ").\n",
-        "-define(", Define, ", 1).\n",
-        [
-            io_lib:format("-define(crate_~s, ~p).~n", [Name, Path])
-            || {Name, Path} <- maps:to_list(NifLoadPaths)
-        ],
-        "-endif.\n"
+get_defines(NifLoadPaths) ->
+    Opts = [
+        get_define(Name, Path) || {Name, Path} <- maps:to_list(NifLoadPaths)
     ],
 
-    file:write_file(filename:join(Ebin, "crates.hrl"), Hrl).
+    [{d, 'CRATES_HRL', 1} | Opts].
 
 
+get_define(Name, Path) ->
+    D = binary_to_atom(
+        list_to_binary(io_lib:format("crate_~s", [Name])),
+        utf8
+    ),
+
+    {d, D, binary_to_list(list_to_binary([Path]))}.
+
+
+-spec cp(filename:type(), filename:type()) -> {ok, filename:type()} | {error, ignored}.
 cp(Src, Dst) ->
     OsType = os:type(),
     Ext = filename:extension(Src),
@@ -214,6 +219,7 @@ cp(Src, Dst) ->
     end.
 
 
+-spec check_extension(binary(), {atom(), atom()}) -> boolean().
 check_extension(<<".dll">>, {win32, _}) -> true;
 check_extension(<<".dylib">>, {unix, darwin}) -> true;
 check_extension(<<".so">>, {unix, Os}) when Os =/= darwin -> true;
