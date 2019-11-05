@@ -1,4 +1,4 @@
--module(rebar3_rust_util).
+-module(rebar3_cargo_util).
 
 -export([
     get_apps/1,

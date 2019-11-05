@@ -1,4 +1,4 @@
-{application, rebar3_rust,
+{application, rebar3_cargo,
  [{description, "A rebar plugin to build Rust crates."},
   {vsn, "0.1.0"},
   {registered, []},

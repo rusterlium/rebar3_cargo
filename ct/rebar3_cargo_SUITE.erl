@@ -1,4 +1,4 @@
--module(rebar3_rust_SUITE).
+-module(rebar3_cargo_SUITE).
 
 -compile([export_all]).
 
@@ -26,8 +26,8 @@ init_per_suite(Config) ->
                         filename:join(PrivDir, App),
                         [recursive]),
 
-                    %% setup symlink for rebar3_rust plugin
-                    LinkName = filename:join([PrivDir, App, "_checkouts", "rebar3_rust"]),
+                    %% setup symlink for rebar3_cargo plugin
+                    LinkName = filename:join([PrivDir, App, "_checkouts", "rebar3_cargo"]),
                     ok = filelib:ensure_dir(LinkName),
                     ok = file:make_symlink(SrcDir, LinkName)
                   end,

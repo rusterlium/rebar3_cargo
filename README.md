@@ -1,5 +1,5 @@
-# `rebar3_rust`
-[![Build Status](https://travis-ci.org/goertzenator/rebar3_rust.svg?branch=master)](https://travis-ci.org/goertzenator/rebar3_rust)
+# `rebar3_cargo`
+[![Build Status](https://travis-ci.org/goertzenator/rebar3_cargo.svg?branch=master)](https://travis-ci.org/goertzenator/rebar3_cargo)
 
 This plugin for [`rebar3`](https://www.rebar3.org/) enables the automatic building of Rust crates in an Erlang application.
 The plugin will build all crates in the `crates` directory and copy all binary outputs to `priv/crates/<cratename>/<binary>`.
@@ -7,7 +7,7 @@ See the test application in this repository for an example of a port program and
 
 ## Todo list
 
-As of this writing `rebar3_rust` will build crates on
+As of this writing `rebar3_cargo` will build crates on
 linux and passes tests, however it is still under construction.
 
 Todo:
@@ -22,7 +22,7 @@ Use the plugin by adding the following to `rebar.config`:
 
 ``` erlang
 {plugins, [
-    { rebar3_rust, ".*", {git, "https://github.com/goertzenator/rebar3_rust", {branch, "master"}}}
+    { rebar3_cargo, ".*", {git, "https://github.com/goertzenator/rebar3_cargo", {branch, "master"}}}
 ]}.
 
 {provider_hooks, [
@@ -34,7 +34,7 @@ Use the plugin by adding the following to `rebar.config`:
 ]}.
 ```
 
-This will automatically download and use `rebar3_rust`.  Crates will be compiled whenever the containing app is compiled.
+This will automatically download and use `rebar3_cargo`.  Crates will be compiled whenever the containing app is compiled.
 The cargo `--release` switch will be used when the `prod` profile is active.  For example:
 
 ``` sh

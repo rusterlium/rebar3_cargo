@@ -1,4 +1,4 @@
--module(rebar3_rust_compile_prv).
+-module(rebar3_cargo_compile_prv).
 
 -export([init/1, do/1, format_error/1]).
 
@@ -146,7 +146,7 @@ do_crate(Metadata, {_IsFresh, Files}, IsRelease, App) ->
             "debug"
     end,
 
-    PrivDir = rebar3_rust_util:get_priv_dir(App),
+    PrivDir = rebar3_cargo_util:get_priv_dir(App),
     OutDir = filename:join([PrivDir, Name, Version, Type]),
 
     filelib:ensure_dir(filename:join([OutDir, "dummy"])),
