@@ -46,5 +46,6 @@ test_app(App) ->
 
 
 test_crate(CrateDir) ->
-    {ok, _} = rebar_utils:sh("cargo test", [{cd, CrateDir}, {use_stdout, true}]),
+    Cargo = cargo:init(CrateDir),
+    {ok, _} = cargo:test(Cargo),
     ok.

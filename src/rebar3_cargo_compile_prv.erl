@@ -53,67 +53,13 @@ do(State) ->
 do_app(App, State) ->
     IsRelease = lists:member(prod, rebar_state:current_profiles(State)),
 
-    ReleaseFlag =
-    case IsRelease of
-        true -> " --release";
-        false -> ""
-    end,
-
-    {ok, MetadataS} =
-    rebar_utils:sh(
-        lists:flatten(["cargo metadata --format-version=1 --no-deps"]),
-        [{use_stdout, false}]
-    ),
-
-    Metadata = jsx:decode(list_to_binary(MetadataS), [return_maps]),
-    Packages = maps:from_list([
-        {maps:get(<<"id">>, M), M}
-        || M <- maps:get(<<"packages">>, Metadata)
-    ]),
-
-    {ok, Output} =
-    rebar_utils:sh(
-        lists:flatten(["cargo build --message-format=json-diagnostic-short --quiet", ReleaseFlag]),
-        [{env, env()}, {use_stdout, false}]
-    ),
-
-    Splitted = string:split(Output, "\n", all),
-    Artifacts = lists:foldl(
-        fun ("", Artifacts) ->
-                Artifacts;
-
-            (Line, Artifacts) ->
-                Map = jsx:decode(list_to_binary(Line), [return_maps]),
-                #{
-                    <<"reason">> := Reason,
-                    <<"package_id">> := PackageId
-                } = Map,
-
-                case Reason of
-                    <<"compiler-artifact">> when is_map_key(PackageId, Packages) ->
-                        Artifacts#{
-                            PackageId => {
-                                maps:get(<<"fresh">>, Map, false), maps:get(<<"filenames">>, Map)
-                            }
-                        };
-                    _ ->
-                        Artifacts
-                end
-        end,
-        #{},
-        Splitted
-    ),
+    Cargo = cargo:init(rebar_app_info:dir(App), #{ release => IsRelease }),
+    Artifacts = cargo:build_and_capture(Cargo),
 
     NifLoadPaths =
-    lists:foldl(
-        fun (Id, Map) ->
-            {Name, Path} =
-            do_crate(
-                maps:get(Id, Packages),
-                maps:get(Id, Artifacts),
-                IsRelease,
-                App
-            ),
+    maps:fold(
+        fun (_Id, Artifact, Map) ->
+            {Name, Path} = do_crate(Artifact, IsRelease, App),
             Map#{ Name => Path }
         end,
         #{},
@@ -133,11 +79,12 @@ do_app(App, State) ->
     rebar_app_info:opts(App, Opts1).
 
 
-do_crate(Metadata, {_IsFresh, Files}, IsRelease, App) ->
+do_crate(Artifact, IsRelease, App) ->
     #{
-        <<"name">> := Name,
-        <<"version">> := Version
-    } = Metadata,
+        name := Name,
+        version := Version,
+        filenames := Files
+    } = Artifact,
 
     Type = case IsRelease of
         true ->
@@ -165,15 +112,6 @@ do_crate(Metadata, {_IsFresh, Files}, IsRelease, App) ->
     ),
 
     {Name, NifLoadPath}.
-
-
-env() ->
-    case os:type() of
-        {unix, darwin} ->
-            [{"RUSTFLAGS", "--codegen 'link-args=-flat_namespace -undefined suppress'"}];
-        _ ->
-            []
-    end.
 
 
 -spec write_header(rebar_app_info:t(), #{ binary() => filename:type() }) -> ok.
@@ -211,6 +149,7 @@ get_define(Name, Path) ->
         utf8
     ),
 
+    % TODO: This must be relative to code:priv_dir
     {d, D, binary_to_list(list_to_binary([Path]))}.
 
 
@@ -220,7 +159,7 @@ cp(Src, Dst) ->
     Ext = filename:extension(Src),
     Fname = filename:basename(Src),
 
-    case check_extension(Ext, OsType) of
+    case cargo_util:check_extension(Ext, OsType) of
         true ->
             rebar_api:info("  Copying ~s...", [Fname]),
             OutPath = filename:join([
@@ -240,10 +179,3 @@ cp(Src, Dst) ->
             rebar_api:debug("  Ignoring ~s", [Fname]),
             {error, ignored}
     end.
-
-
--spec check_extension(binary(), {atom(), atom()}) -> boolean().
-check_extension(<<".dll">>, {win32, _}) -> true;
-check_extension(<<".dylib">>, {unix, darwin}) -> true;
-check_extension(<<".so">>, {unix, Os}) when Os =/= darwin -> true;
-check_extension(_, _) -> false.
