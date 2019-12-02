@@ -63,7 +63,7 @@ do_app(App, State) ->
             Map#{ Name => Path }
         end,
         #{},
-        maps:keys(Artifacts)
+        Artifacts
     ),
 
     ErlOpts = get_defines(NifLoadPaths),
