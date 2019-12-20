@@ -1,9 +1,14 @@
 -module(rebar3_cargo_clean_prv).
 
--export([init/1, do/1, format_error/1]).
+-export([
+    init/1,
+    do/1,
+    format_error/1
+]).
+
+-include("internal.hrl").
 
 -define(PROVIDER, clean).
--define(NAMESPACE, rust).
 -define(DEPS, [{default,app_discovery}]).
 
 %% ===================================================================
@@ -17,7 +22,7 @@ init(State) ->
             {module, ?MODULE},               % The module implementation of the task
             {bare, true},                    % The task can be run by the user, always true
             {deps, ?DEPS},                   % The list of dependencies
-            {example, "rebar3 rust clean"},  % How to use the plugin
+            {example, "rebar3 cargo clean"},  % How to use the plugin
             {opts, []},                      % list of options understood by the plugin
             {short_desc, "Clean Rust crates"},
             {desc, "Clean Rust crates"}
@@ -49,5 +54,6 @@ clean_app(App) ->
 
 
 clean_crate(CrateDir) ->
-    {ok, _} = rebar_utils:sh("cargo clean", [{cd, CrateDir}, {use_stdout, true}]),
+    Cargo = cargo:init(CrateDir),
+    {ok, _} = cargo:clean(Cargo),
     ok.

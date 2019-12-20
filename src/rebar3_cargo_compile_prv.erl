@@ -1,13 +1,16 @@
 -module(rebar3_cargo_compile_prv).
 
--export([init/1, do/1, format_error/1]).
+-export([
+    init/1,
+    do/1,
+    format_error/1
+]).
 
+-include("internal.hrl").
 -include_lib("kernel/include/file.hrl").
 
 -define(PROVIDER, build).
--define(NAMESPACE, rust).
--define(DEPS, [{default,app_discovery}]).
-
+-define(DEPS, [{default, app_discovery}]).
 
 %% ===================================================================
 %% Public API
