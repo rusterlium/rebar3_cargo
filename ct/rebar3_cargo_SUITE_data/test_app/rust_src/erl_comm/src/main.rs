@@ -16,15 +16,15 @@ fn bar(y: i32) -> i32 {
 // erl_comm.c
 
 fn read_cmd(buf: &mut [u8]) -> io::Result<&[u8]> {
-    let len = try!(stdin().read_u16::<BigEndian>()) as usize;
+    let len = r#try!(stdin().read_u16::<BigEndian>()) as usize;
     let mut result = &mut buf[..len];
-    try!(stdin().read_exact(&mut result));
+    r#try!(stdin().read_exact(&mut result));
     Ok(result)
 }
 
 fn write_cmd(buf: &[u8]) -> io::Result<()> {
-    try!(stdout().write_u16::<BigEndian>(buf.len() as u16));
-    try!(stdout().write_all(buf));
+    r#try!(stdout().write_u16::<BigEndian>(buf.len() as u16));
+    r#try!(stdout().write_all(buf));
     stdout().flush()
 }
 
@@ -36,7 +36,7 @@ fn main_loop() -> io::Result<()> {
 
     loop {
         let res = {
-            let cmd = try!(read_cmd(&mut buf[..]));
+            let cmd = r#try!(read_cmd(&mut buf[..]));
             match cmd[0] {
                 1 => foo(cmd[1] as i32),
                 2 => bar(cmd[1] as i32),
@@ -44,7 +44,7 @@ fn main_loop() -> io::Result<()> {
             }
         };
         buf[0] = res as u8;
-        try!(write_cmd(&buf[..1]));
+        r#try!(write_cmd(&buf[..1]));
     }
 }
 

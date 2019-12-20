@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "rust_src/nifsys",
+    # "rust_src/erl_comm"
+]
