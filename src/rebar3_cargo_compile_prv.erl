@@ -122,7 +122,7 @@ do_crate(Artifact, IsRelease, App) ->
     {Name, NifLoadPath}.
 
 
--spec write_header(rebar_app_info:t(), #{ binary() => filename:type() }) -> ok.
+-spec write_header(rebar_app_info:t(), #{ binary() => file:filename_all() }) -> ok.
 write_header(App, NifLoadPaths) ->
     Define = "CRATES_HRL",
     FuncDefine = "FUNC_CRATES_HRL",
@@ -171,7 +171,8 @@ get_define(Name, Path) ->
     {d, D, binary_to_list(list_to_binary([Path]))}.
 
 
--spec cp(filename:type(), filename:type()) -> ok | {error, ignored}.
+-spec cp(file:filename_all(), file:filename_all()) ->
+    {ok, file:filename_all()} | {error, ignored}.
 cp(Src, Dst) ->
     OsType = os:type(),
     Ext = filename:extension(Src),
