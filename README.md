@@ -22,7 +22,7 @@ Use the plugin by adding the following to `rebar.config`:
 
 ``` erlang
 {plugins, [
-    { rebar3_cargo, ".*", {git, "https://github.com/goertzenator/rebar3_cargo", {branch, "master"}}}
+    { rebar3_cargo, ".*", {git, "https://github.com/rusterlium/rebar3_cargo", {branch, "master"}}}
 ]}.
 
 {provider_hooks, [
@@ -42,7 +42,7 @@ rebar3 as prod compile
 ```
 
 # Application structure with Rust crates
-To add crates to an Erlang application, place them in a `crates/` folder.  All crates found within will be built and resulting artifacts will be placed in the `priv/crates/` folder.
+To add crates to an Erlang application, place them in a `crates/` folder, and reference them in a Cargo Workspace.  All crates found within will be built and resulting artifacts will be placed in the `priv/crates/` folder.
 
 The library application [`find_crate`](https://github.com/goertzenator/find_crate) may be used to reliably find artifacts in `priv/crates` in a cross-platform manner.
 
@@ -51,6 +51,7 @@ Project structure:
 ```
 myapp/
     rebar.config
+    Cargo.toml
     ebin/
         ...
     src/
