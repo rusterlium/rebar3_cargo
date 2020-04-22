@@ -98,6 +98,8 @@ do_crate(Artifact, IsRelease, App) ->
 
     PrivDir = rebar3_cargo_util:get_priv_dir(App),
     OutDir = filename:join([PrivDir, Name, Version, Type]),
+    % TODO: Get "relative" path
+    RelativeLoadPath = filename:join(["crates", Name, Version, Type]),
 
     filelib:ensure_dir(filename:join([OutDir, "dummy"])),
 
@@ -105,8 +107,9 @@ do_crate(Artifact, IsRelease, App) ->
     [NifLoadPath] = lists:filtermap(
         fun (F) ->
             case cp(F, OutDir) of
-                {ok, NLP} ->
-                    {true, NLP};
+                ok ->
+                    Filename = filename:basename(F),
+                    {true, filename:rootname(filename:join([RelativeLoadPath, Filename]))};
                 _ ->
                     false
             end
@@ -114,12 +117,15 @@ do_crate(Artifact, IsRelease, App) ->
         Files
     ),
 
+    rebar_api:info("Load path ~s", [NifLoadPath]),
+
     {Name, NifLoadPath}.
 
 
 -spec write_header(rebar_app_info:t(), #{ binary() => filename:type() }) -> ok.
 write_header(App, NifLoadPaths) ->
     Define = "CRATES_HRL",
+    FuncDefine = "FUNC_CRATES_HRL",
 
     Hrl = [
         "-ifndef(", Define, ").\n",
@@ -128,6 +134,15 @@ write_header(App, NifLoadPaths) ->
             io_lib:format("-define(crate_~s, ~p).~n", [Name, undefined])
             || Name <- maps:keys(NifLoadPaths)
         ],
+        "-endif.\n"
+        "-ifndef(", FuncDefine, ").\n",
+        "-define(", FuncDefine, ", 1).\n",
+        "-define(load_nif_from_crate(__APP,__CRATE,__INIT),"
+            "(fun()->"
+            "__PATH=filename:join(code:priv_dir(__APP),__CRATE),"
+            "erlang:load_nif(__PATH,__INIT)"
+            "end)()"
+        ").\n",
         "-endif.\n"
     ],
 
@@ -156,7 +171,7 @@ get_define(Name, Path) ->
     {d, D, binary_to_list(list_to_binary([Path]))}.
 
 
--spec cp(filename:type(), filename:type()) -> {ok, filename:type()} | {error, ignored}.
+-spec cp(filename:type(), filename:type()) -> ok | {error, ignored}.
 cp(Src, Dst) ->
     OsType = os:type(),
     Ext = filename:extension(Src),
@@ -172,12 +187,7 @@ cp(Src, Dst) ->
 
             {ok, _} = file:copy(Src, OutPath),
 
-            Len = byte_size(OutPath) - byte_size(Ext),
-
-            NifLoadPath = binary:part(OutPath, 0, Len),
-            % rebar_api:info("  Load as erlang:load_nif(~p, 0).", [NifLoadPath]);
-
-            {ok, NifLoadPath};
+            ok;
         _ ->
             rebar_api:debug("  Ignoring ~s", [Fname]),
             {error, ignored}
