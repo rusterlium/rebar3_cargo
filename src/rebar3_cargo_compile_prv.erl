@@ -60,8 +60,8 @@ do_app(App, State) ->
     Artifacts = cargo:build_and_capture(Cargo),
 
     NifLoadPaths =
-    maps:fold(
-        fun (_Id, Artifact, Map) ->
+    lists:foldl(
+        fun (Artifact, Map) ->
             {Name, Path} = do_crate(Artifact, IsRelease, App),
             Map#{ Name => Path }
         end,
@@ -83,11 +83,9 @@ do_app(App, State) ->
 
 
 do_crate(Artifact, IsRelease, App) ->
-    #{
-        name := Name,
-        version := Version,
-        filenames := Files
-    } = Artifact,
+    Name = cargo_artifact:crate(Artifact),
+    Version = cargo_artifact:version(Artifact),
+    Files = cargo_artifact:filenames(Artifact),
 
     Type = case IsRelease of
         true ->
@@ -98,7 +96,6 @@ do_crate(Artifact, IsRelease, App) ->
 
     PrivDir = rebar3_cargo_util:get_priv_dir(App),
     OutDir = filename:join([PrivDir, Name, Version, Type]),
-    % TODO: Get "relative" path
     RelativeLoadPath = filename:join(["crates", Name, Version, Type]),
 
     filelib:ensure_dir(filename:join([OutDir, "dummy"])),
@@ -109,7 +106,12 @@ do_crate(Artifact, IsRelease, App) ->
             case cp(F, OutDir) of
                 ok ->
                     Filename = filename:basename(F),
-                    {true, filename:rootname(filename:join([RelativeLoadPath, Filename]))};
+                    case cargo_util:is_dylib(Filename) of
+                        true ->
+                            {true, filename:rootname(filename:join([RelativeLoadPath, Filename]))};
+                        false ->
+                            false
+                    end;
                 _ ->
                     false
             end
@@ -171,25 +173,15 @@ get_define(Name, Path) ->
     {d, D, binary_to_list(list_to_binary([Path]))}.
 
 
--spec cp(file:filename_all(), file:filename_all()) ->
-    {ok, file:filename_all()} | {error, ignored}.
+-spec cp(file:filename_all(), file:name_all()) -> ok | {error, ignored}.
 cp(Src, Dst) ->
-    OsType = os:type(),
-    Ext = filename:extension(Src),
     Fname = filename:basename(Src),
 
-    case cargo_util:check_extension(Ext, OsType) of
-        true ->
-            rebar_api:info("  Copying ~s...", [Fname]),
-            OutPath = filename:join([
-                Dst,
-                filename:basename(Src)
-            ]),
+    rebar_api:info("  Copying ~s...", [Fname]),
+    OutPath = filename:join([
+        Dst,
+        filename:basename(Src)
+    ]),
 
-            {ok, _} = file:copy(Src, OutPath),
-
-            ok;
-        _ ->
-            rebar_api:debug("  Ignoring ~s", [Fname]),
-            {error, ignored}
-    end.
+    {ok, _} = file:copy(Src, OutPath),
+    ok.
