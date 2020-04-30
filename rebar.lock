@@ -1,7 +1,7 @@
 {"1.1.0",
 [{<<"cargo">>,
   {git,"https://github.com/filmor/erlang-cargo.git",
-       {ref,"634f85f49c3aaa7f307d1d7e2dfbb463a593b293"}},
+       {ref,"c31e7c06ff8f0c41478352479a3680e0dd2983c9"}},
   0},
  {<<"jsx">>,{pkg,<<"jsx">>,<<"2.8.2">>},0}]}.
 [
