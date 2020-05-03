@@ -1,7 +1,7 @@
 {"1.1.0",
 [{<<"cargo">>,
   {git,"https://github.com/rusterlium/erlang-cargo.git",
-       {ref,"c31e7c06ff8f0c41478352479a3680e0dd2983c9"}},
+       {ref,"218f2375e6a4349366bf937ed02c00257c661739"}},
   0},
  {<<"jsx">>,{pkg,<<"jsx">>,<<"2.10.0">>},1}]}.
 [

@@ -57,7 +57,7 @@ do_app(App, State) ->
     IsRelease = lists:member(prod, rebar_state:current_profiles(State)),
 
     Cargo = cargo:init(rebar_app_info:dir(App), #{ release => IsRelease }),
-    Artifacts = cargo:build_and_capture(Cargo),
+    Artifacts = cargo:build(Cargo),
 
     NifLoadPaths =
     lists:foldl(
@@ -83,7 +83,7 @@ do_app(App, State) ->
 
 
 do_crate(Artifact, IsRelease, App) ->
-    Name = cargo_artifact:crate(Artifact),
+    Name = cargo_artifact:name(Artifact),
     Version = cargo_artifact:version(Artifact),
     Files = cargo_artifact:filenames(Artifact),
 
@@ -125,7 +125,7 @@ do_crate(Artifact, IsRelease, App) ->
 
 
 -spec write_header(rebar_app_info:t(), #{ binary() => file:filename_all() }) -> ok.
-write_header(App, NifLoadPaths) ->
+write_header(App, NifLoadPaths, ExePaths) ->
     Define = "CRATES_HRL",
     FuncDefine = "FUNC_CRATES_HRL",
 
