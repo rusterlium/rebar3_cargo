@@ -125,7 +125,7 @@ do_crate(Artifact, IsRelease, App) ->
 
 
 -spec write_header(rebar_app_info:t(), #{ binary() => file:filename_all() }) -> ok.
-write_header(App, NifLoadPaths, ExePaths) ->
+write_header(App, NifLoadPaths) ->
     Define = "CRATES_HRL",
     FuncDefine = "FUNC_CRATES_HRL",
 
