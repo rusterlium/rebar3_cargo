@@ -52,5 +52,5 @@ test_app(App) ->
 
 test_crate(CrateDir) ->
     Cargo = cargo:init(CrateDir),
-    {ok, _} = cargo:test(Cargo),
+    {ok, _} = cargo:test_all(Cargo),
     ok.

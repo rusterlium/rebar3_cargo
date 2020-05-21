@@ -1,10 +1,8 @@
 {"1.1.0",
-[{<<"cargo">>,
-  {git,"https://github.com/rusterlium/erlang-cargo.git",
-       {ref,"b4159576565554e689eb1ac25ae2e634252d514b"}},
-  0},
+[{<<"cargo">>,{pkg,<<"cargo">>,<<"0.1.0">>},0},
  {<<"jsx">>,{pkg,<<"jsx">>,<<"2.10.0">>},1}]}.
 [
 {pkg_hash,[
+ {<<"cargo">>, <<"8AE8ACA2D723273D21E4EF482CFAF2D11CBEB23775F012D80A22B8D9272C1A0E">>},
  {<<"jsx">>, <<"77760560D6AC2B8C51FD4C980E9E19B784016AA70BE354CE746472C33BEB0B1C">>}]}
 ].
