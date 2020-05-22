@@ -40,17 +40,7 @@ do(State) ->
     [ test_app(App) || App <- rebar3_cargo_util:get_apps(State) ],
     {ok, State}.
 
-
 test_app(App) ->
-    CrateDirs = rebar3_cargo_util:get_crate_dirs(App),
-
-    %% test individual crates
-    [ test_crate(CrateDir) || CrateDir <- CrateDirs ],
-
-    ok.
-
-
-test_crate(CrateDir) ->
-    Cargo = cargo:init(CrateDir),
+    Cargo = cargo:init(rebar_app_info:dir(App)),
     {ok, _} = cargo:test_all(Cargo),
     ok.

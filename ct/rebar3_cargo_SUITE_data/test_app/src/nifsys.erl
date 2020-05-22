@@ -1,13 +1,14 @@
 -module(nifsys).
 
+-include("crates.hrl").
+
 -export([static_atom/0,native_add/2, tuple_add/1]).
 -on_load(init/0).
 
 -include_lib("eunit/include/eunit.hrl").
 
 init() ->
-    {ok, Lib} = find_crate:find_library(test_app, "nifsys"),
-    ok = erlang:load_nif(Lib, 0).
+    ?load_nif_from_crate(test_app, ?crate_nifsys, 0).
 
 static_atom() ->
     exit(nif_library_not_loaded).

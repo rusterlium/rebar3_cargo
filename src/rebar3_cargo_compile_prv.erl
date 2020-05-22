@@ -110,17 +110,14 @@ do_crate(Artifact, IsRelease, App) ->
     filelib:ensure_dir(filename:join([OutDir, "dummy"])),
 
     rebar_api:info("Copying artifacts for ~s ~s...", [Name, Version]),
-    [NifLoadPath] = lists:filtermap(
+
+    % TODO: Distinguish nif vs. other cases here?
+    [NifLoadPath|_] = lists:map(
         fun (F) ->
             case cp(F, OutDir) of
                 ok ->
                     Filename = filename:basename(F),
-                    case cargo_util:is_dylib(Filename) of
-                        true ->
-                            {true, filename:rootname(filename:join([RelativeLoadPath, Filename]))};
-                        false ->
-                            false
-                    end;
+                    filename:rootname(filename:join([RelativeLoadPath, Filename]));
                 _ ->
                     false
             end

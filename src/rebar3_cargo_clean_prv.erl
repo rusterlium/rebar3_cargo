@@ -42,18 +42,10 @@ do(State) ->
 
 clean_app(App) ->
     PrivDir = rebar3_cargo_util:get_priv_dir(App),
-    CrateDirs = rebar3_cargo_util:get_crate_dirs(App),
-
-    %% clean individual crates
-    [ clean_crate(CrateDir) || CrateDir <- CrateDirs ],
+    Cargo = cargo:init(rebar_app_info:dir(App)),
+    catch cargo:clean(Cargo),
 
     %% delete priv/crates
     ok = rebar_file_utils:rm_rf(filename:join(PrivDir, "crates")),
 
-    ok.
-
-
-clean_crate(CrateDir) ->
-    Cargo = cargo:init(CrateDir),
-    {ok, _} = cargo:clean(Cargo),
     ok.
