@@ -1,8 +1,8 @@
 # `rebar3_cargo`
-[![Build Status](https://travis-ci.org/goertzenator/rebar3_cargo.svg?branch=master)](https://travis-ci.org/goertzenator/rebar3_cargo)
+![CI](https://github.com/rusterlium/rebar3_cargo/workflows/CI/badge.svg)
 
 This plugin for [`rebar3`](https://www.rebar3.org/) enables the automatic building of Rust crates in an Erlang application.
-The plugin will build all crates in the `crates` directory and copy all binary outputs to `priv/crates/<cratename>/<binary>`.
+The plugin will build all crates in the `crates` directory and copy all binary outputs to `priv/crates/<cratename>/<version>/<release-mode>/<binary>`.
 See the test application in this repository for an example of a port program and NIF module implemented in Rust.
 
 ## Todo list
@@ -26,10 +26,12 @@ Use the plugin by adding the following to `rebar.config`:
 ]}.
 
 {provider_hooks, [
+    {pre, [
+        {compile, {cargo, build}}
+    ]},
     {post, [
-        {compile, {rust, build}},
-        {clean, {rust, clean}},
-        {eunit, {rust, test}}
+        {clean, {cargo, clean}},
+        {eunit, {cargo, test}}
     ]}
 ]}.
 ```
@@ -43,32 +45,3 @@ rebar3 as prod compile
 
 # Application structure with Rust crates
 To add crates to an Erlang application, place them in a `crates/` folder, and reference them in a Cargo Workspace.  All crates found within will be built and resulting artifacts will be placed in the `priv/crates/` folder.
-
-The library application [`find_crate`](https://github.com/goertzenator/find_crate) may be used to reliably find artifacts in `priv/crates` in a cross-platform manner.
-
-
-Project structure:
-```
-myapp/
-    rebar.config
-    Cargo.toml
-    ebin/
-        ...
-    src/
-         ...
-    crates/
-        foo_nif/
-            Cargo.toml
-            ...
-        bar_port/
-            Cargo.toml
-             ...
-    priv/
-        crates/
-            foo_nif/
-                libfoo_nif.so
-            bar_port/
-                bar_port
-
-```
-
