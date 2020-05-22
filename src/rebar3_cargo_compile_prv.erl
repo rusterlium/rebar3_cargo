@@ -54,7 +54,16 @@ do(State) ->
 %% process for one application
 -spec do_app(rebar_app_info:t(), rebar_state:t()) -> rebar_app_info:t().
 do_app(App, State) ->
-    IsRelease = lists:member(prod, rebar_state:current_profiles(State)),
+    CargoOpts = rebar3_cargo_opts:from_state(State),
+
+    IsRelease = case rebar3_cargo_opts:mode(CargoOpts) of
+        release ->
+            true;
+        debug ->
+            false;
+        auto ->
+            lists:member(prod, rebar_state:current_profiles(State))
+    end,
 
     Cargo = cargo:init(rebar_app_info:dir(App), #{ release => IsRelease }),
     Artifacts = cargo:build_all(Cargo),
