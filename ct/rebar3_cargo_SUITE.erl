@@ -1,6 +1,6 @@
 -module(rebar3_cargo_SUITE).
 
--compile([export_all]).
+-compile([export_all, nowarn_export_all]).
 
 -include_lib("common_test/include/ct.hrl").
 
@@ -24,12 +24,26 @@ init_per_suite(Config) ->
                     ok = ec_file:copy(
                         filename:join(DataDir, App),
                         filename:join(PrivDir, App),
-                        [recursive]),
+                        [recursive]
+                    ),
 
-                    %% setup symlink for rebar3_cargo plugin
-                    LinkName = filename:join([PrivDir, App, "_checkouts", "rebar3_cargo"]),
-                    ok = filelib:ensure_dir(LinkName),
-                    ok = file:make_symlink(SrcDir, LinkName)
+                    RcCheckout = filename:join([PrivDir, App, "_checkouts", "rebar3_cargo"]),
+                    ok = filelib:ensure_dir(RcCheckout),
+
+                    ok = ec_file:copy(
+                        filename:join(SrcDir, "rebar.config"),
+                        RcCheckout
+                    ),
+                    ok = ec_file:copy(
+                        filename:join(SrcDir, "rebar.lock"),
+                        RcCheckout
+                    ),
+
+                    ok = ec_file:copy(
+                        filename:join(SrcDir, "src"),
+                        RcCheckout,
+                        [recursive]
+                    )
                   end,
                   test_apps()),
 
