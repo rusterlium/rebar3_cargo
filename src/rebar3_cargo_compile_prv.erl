@@ -189,5 +189,8 @@ cp(Src, Dst) ->
         filename:basename(Src)
     ]),
 
-    {ok, _} = file:copy(Src, OutPath),
+    case file:copy(Src, OutPath) of
+        {ok, _} -> ok;
+        Error -> rebar_api:warn("  Failed to copy ~s: ~p", [Fname, Error])
+    end,
     ok.
