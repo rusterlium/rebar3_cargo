@@ -180,17 +180,28 @@ get_define(Name, Path) ->
 
 
 -spec cp(file:filename_all(), file:name_all()) -> ok | {error, ignored}.
-cp(Src, Dst) ->
-    Fname = filename:basename(Src),
+cp(Src, DstDir) ->
+    Extension = filename:extension(Src),
+    Fname = filename:basename(Src, Extension),
 
     rebar_api:info("  Copying ~s...", [Fname]),
-    OutPath = filename:join([
-        Dst,
-        filename:basename(Src)
-    ]),
+    % Erlang's load_nif/2 is not prepared to read Mac OS's .dylib extension,
+    % take a shortcut here and rename the extension to .so in that case
+    Dst = maybe_rename_extension(os:type(), Fname, Extension),
+
+    OutPath = filename:join([DstDir, Dst]),
 
     case file:copy(Src, OutPath) of
         {ok, _} -> ok;
         Error -> rebar_api:warn("  Failed to copy ~s: ~p", [Fname, Error])
     end,
     ok.
+
+-spec maybe_rename_extension(OsType :: {unix | win32, atom()},
+                             Name :: file:filename_all(),
+                             Extension :: file:filename_all()) -> file:filename_all().
+maybe_rename_extension({unix, darwin}, Name, <<".dylib">>) ->
+    filename:flatten([Name, ".so"]);
+maybe_rename_extension(_, Name, Extension) ->
+    filename:flatten([Name, Extension]).
+
