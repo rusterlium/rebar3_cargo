@@ -65,7 +65,7 @@ do_app(App, State) ->
             lists:member(prod, rebar_state:current_profiles(State))
     end,
 
-    Cargo = cargo:init(rebar_app_info:dir(App), #{ release => IsRelease }),
+    Cargo = rebar3_cargo_util:cargo_init(App, CargoOpts, IsRelease), 
     Artifacts = cargo:build_all(Cargo),
 
     NifLoadPaths =
