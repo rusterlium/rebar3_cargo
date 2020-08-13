@@ -6,8 +6,7 @@
     cargo_init/3
 ]).
 
--define(DIR_NAME, "rust_src").
-
+-define(DEFAULT_TARGET_DIR, "target").
 
 -spec get_apps(rebar_state:t()) -> [rebar_app_info:t()].
 get_apps(State) ->
@@ -31,5 +30,6 @@ get_priv_dir(App) ->
 cargo_init(App, CargoOpts, IsRelease) ->
     AppDir = rebar_app_info:dir(App),
     cargo_opts:new(#{ path => filename:join(AppDir, rebar3_cargo_opts:src_dir(CargoOpts)),
+                      target_dir => list_to_binary(filename:join([rebar_app_info:out_dir(App), ?DEFAULT_TARGET_DIR])),
                       release => IsRelease }).
 
