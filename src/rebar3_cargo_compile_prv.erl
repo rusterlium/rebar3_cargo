@@ -85,7 +85,6 @@ do_app(App, State) ->
     ErlOpts1 = ErlOpts ++ rebar_opts:get(Opts, erl_opts, []),
     Opts1 = rebar_opts:set(Opts, erl_opts, ErlOpts1),
 
-    rebar_api:info("Writing crates header...", []),
     write_header(App, NifLoadPaths),
 
     rebar_app_info:opts(App, Opts1).
@@ -109,8 +108,6 @@ do_crate(Artifact, IsRelease, App) ->
 
     filelib:ensure_dir(filename:join([OutDir, "dummy"])),
 
-    rebar_api:info("Copying artifacts for ~s ~s...", [Name, Version]),
-
     % TODO: Distinguish nif vs. other cases here?
     [NifLoadPath|_] = lists:map(
         fun (F) ->
@@ -124,8 +121,6 @@ do_crate(Artifact, IsRelease, App) ->
         end,
         Files
     ),
-
-    rebar_api:info("Load path ~s", [NifLoadPath]),
 
     {Name, NifLoadPath}.
 
