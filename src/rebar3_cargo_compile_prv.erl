@@ -104,7 +104,7 @@ do_crate(Artifact, IsRelease, App) ->
     end,
 
     PrivDir = rebar3_cargo_util:get_priv_dir(App),
-    OutDir = filename:join([PrivDir, Name, Version, Type]),
+    OutDir = filename:join([PrivDir, "crates", Name, Version, Type]),
     RelativeLoadPath = filename:join(["crates", Name, Version, Type]),
 
     filelib:ensure_dir(filename:join([OutDir, "dummy"])),
