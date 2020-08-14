@@ -111,7 +111,7 @@ do_crate(Artifact, IsRelease, App) ->
     % TODO: Distinguish nif vs. other cases here?
     [NifLoadPath|_] = lists:map(
         fun (F) ->
-            case cp(F, OutDir) of
+            case filelib:is_regular(F) andalso cp(F, OutDir) of
                 ok ->
                     Filename = filename:basename(F),
                     filename:rootname(filename:join([RelativeLoadPath, Filename]));
