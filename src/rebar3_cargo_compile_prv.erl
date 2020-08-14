@@ -187,7 +187,11 @@ cp(Src, DstDir) ->
     OutPath = filename:join([DstDir, Dst]),
 
     case file:copy(Src, OutPath) of
-        {ok, _} -> ok;
+        {ok, _} ->
+            % Preserve file info
+            {ok, SrcFileInfo} = file:read_file_info(Src),
+            ok = file:write_file_info(OutPath, SrcFileInfo),
+            ok;
         Error -> rebar_api:warn("  Failed to copy ~s: ~p", [Fname, Error])
     end,
     ok.
