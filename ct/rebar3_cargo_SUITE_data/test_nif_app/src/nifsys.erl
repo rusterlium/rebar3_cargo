@@ -8,7 +8,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 init() ->
-    ?load_nif_from_crate(test_app, ?crate_nifsys, 0).
+    ?load_nif_from_crate(test_nif_app, ?crate_nifsys, 0).
 
 static_atom() ->
     exit(nif_library_not_loaded).

@@ -2,11 +2,11 @@
 -export([start/0,start/1, stop/0, init/1]).
 -export([foo/1, bar/1]).
 
+-include("crates.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 start() ->
-    {ok, ExtPrg} = find_crate:find_executable(test_app, "erl_comm"),
-    start(ExtPrg).
+    start(filename:join(code:priv_dir(test_port_app), ?crate_erl_comm)).
 
 start(ExtPrg) ->
     spawn(?MODULE, init, [ExtPrg]).
@@ -28,6 +28,8 @@ call_port(Msg) ->
 init(ExtPrg) ->
     register(complex, self()),
     process_flag(trap_exit, true),
+    io:format("ExtPrg: ~p\n",
+              [ExtPrg]),
     Port = open_port({spawn, ExtPrg}, [{packet, 2}]),
     loop(Port).
 
