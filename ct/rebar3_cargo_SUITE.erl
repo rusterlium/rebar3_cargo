@@ -115,15 +115,21 @@ test_fails_test(Config) ->
 test_release_debug(Config) ->
     #{priv_dir := PrivDir} = maps:from_list(Config),
     AppDir = filename:join(PrivDir, "release_debug"),
-    ExeName = filename:join([AppDir, "priv", "crates", "build_type", "build_type" ++ case os:type() of
-                                                                                         {win32, _} -> ".exe";
-                                                                                         {unix, _} -> ""
-                                                                                     end]),
-
+    Prefix = filename:join([AppDir, "priv", "crates", "build_type", "0.1.0"]),
+    DebugExeName = filename:join([Prefix, "debug", "build_type" ++
+                                  case os:type() of
+                                     {win32, _} -> ".exe";
+                                     {unix, _} -> ""
+                                  end]),
     {ok, _} = rebar_utils:sh("escript rebar3 compile", [{cd, AppDir}, {use_stdout, true}]),
-    {ok, "debug"} = rebar_utils:sh(ExeName, [{cd, AppDir}, {use_stdout, true}]),
+    {ok, "debug"} = rebar_utils:sh(DebugExeName, [{cd, AppDir}, {use_stdout, true}]),
 
+    ReleaseExeName = filename:join([Prefix, "release", "build_type" ++
+                                   case os:type() of
+                                      {win32, _} -> ".exe";
+                                      {unix, _} -> ""
+                                   end]),
     {ok, _} = rebar_utils:sh("rebar3 as prod compile", [{cd, AppDir}, {use_stdout, true}]),
-    {ok, "release"} = rebar_utils:sh(ExeName, [{cd, AppDir}, {use_stdout, true}]),
+    {ok, "release"} = rebar_utils:sh(ReleaseExeName, [{cd, AppDir}, {use_stdout, true}]),
 
     ok.
