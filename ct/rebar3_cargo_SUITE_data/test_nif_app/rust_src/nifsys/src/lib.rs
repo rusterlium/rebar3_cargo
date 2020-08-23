@@ -1,92 +1,47 @@
-#[macro_use]
-extern crate rustler_sys;
-use rustler_sys::*;
-use std::mem::uninitialized;
+#[macro_use] extern crate rustler;
+#[macro_use] extern crate lazy_static;
 
-/// Create NIF module data and init function.
-nif_init!(b"nifsys\0",
-          Some(load),
-          Some(reload),
-          Some(upgrade),
-          Some(unload),
-          nif!(b"static_atom\0", 0, static_atom),
-          nif!(b"native_add\0", 2, native_add, ERL_NIF_DIRTY_JOB_IO_BOUND),
-          nif!(b"tuple_add\0", 1, tuple_add, ERL_NIF_DIRTY_JOB_CPU_BOUND));
+use rustler::{Env, Term, NifResult, Encoder};
 
-static mut my_atom: Option<ERL_NIF_TERM> = None;
-
-/// Initialize static atom.
-extern "C" fn load(env: *mut ErlNifEnv,
-                   _priv_data: *mut *mut c_void,
-                   _load_info: ERL_NIF_TERM)
-                   -> c_int {
-    unsafe {
-        my_atom = Some(enif_make_atom(env, b"static atom from Rust\0" as *const u8));
-        0
+mod atoms {
+    rustler_atoms! {
+        atom an_atom;
     }
 }
 
-/// Does nothing, reports success
-extern "C" fn reload(_env: *mut ErlNifEnv,
-                     _priv_data: *mut *mut c_void,
-                     _load_info: ERL_NIF_TERM)
-                     -> c_int {
-    0
+rustler_export_nifs! {
+    "nifsys",
+    [("static_atom", 0, static_atom),
+     ("native_add", 2, native_add),
+     ("tuple_add", 1, tuple_add)],
+    None
 }
 
-/// Does nothing, reports success
-extern "C" fn upgrade(_env: *mut ErlNifEnv,
-                      _priv_data: *mut *mut c_void,
-                      _old_priv_data: *mut *mut c_void,
-                      _load_info: ERL_NIF_TERM)
-                      -> c_int {
-    0
-}
-
-/// Does nothing, reports success
-extern "C" fn unload(_env: *mut ErlNifEnv, _priv_data: *mut c_void) {}
-
-/// Provide static atom that was initialized by `load()`
-extern "C" fn static_atom(_env: *mut ErlNifEnv,
-                          _argc: c_int,
-                          _args: *const ERL_NIF_TERM)
-                          -> ERL_NIF_TERM {
-    unsafe { my_atom.unwrap() }
+fn static_atom<'a>(env: Env<'a>, _args: &[Term<'a>]) -> NifResult<Term<'a>> {
+    Ok(atoms::an_atom().encode(env))
 }
 
 /// Add two integers. `native_add(A,B) -> A+B.`
-extern "C" fn native_add(env: *mut ErlNifEnv,
-                         argc: c_int,
-                         args: *const ERL_NIF_TERM)
-                         -> ERL_NIF_TERM {
-    unsafe {
-        let mut a: c_int = uninitialized();
-        let mut b: c_int = uninitialized();
-        if argc == 2 && 0 != enif_get_int(env, *args, &mut a) &&
-           0 != enif_get_int(env, *args.offset(1), &mut b) {
-            enif_make_int(env, a + b)
-        } else {
-            enif_make_badarg(env)
-        }
-    }
+fn native_add<'a>(env: Env<'a>, args: &[Term<'a>]) -> NifResult<Term<'a>> {
+    let num1: i64 = args[0].decode()?;
+    let num2: i64 = args[1].decode()?;
+
+    Ok((num1 + num2).encode(env))
+}
+
+#[derive(NifTuple)]
+struct AddTuple {
+    e1: i32,
+    e2: i32,
 }
 
 /// Add integers provided in a 2-tuple. `tuple_add({A,B}) -> A+B.`
-extern "C" fn tuple_add(env: *mut ErlNifEnv,
-                        argc: c_int,
-                        args: *const ERL_NIF_TERM)
-                        -> ERL_NIF_TERM {
-    unsafe {
-        let mut a: c_int = uninitialized();
-        let mut b: c_int = uninitialized();
-        let mut size: c_int = uninitialized();
-        let mut tup: *const ERL_NIF_TERM = uninitialized();
-        if argc == 1 && 0 != enif_get_tuple(env, *args, &mut size, &mut tup) && size == 2 &&
-           0 != enif_get_int(env, *tup, &mut a) &&
-           0 != enif_get_int(env, *tup.offset(1), &mut b) {
-            enif_make_int(env, a + b)
-        } else {
-            enif_make_badarg(env)
-        }
-    }
+fn tuple_add<'a>(env: Env<'a>, args: &[Term<'a>]) -> NifResult<Term<'a>> {
+    let tuple: AddTuple = args[0].decode()?;
+
+    Ok((tuple.e1 + tuple.e2).encode(env))
 }
+
+
+
+

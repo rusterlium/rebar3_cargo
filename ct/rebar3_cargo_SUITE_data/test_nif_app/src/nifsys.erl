@@ -20,6 +20,6 @@ tuple_add(_X) ->
     exit(nif_library_not_loaded).
 
 short_test_() ->
-    [ ?_assertEqual('static atom from Rust', static_atom()),
+    [ ?_assertEqual('an_atom', static_atom()),
       ?_assertEqual(7, native_add(3,4)),
-      ?_assertEqual(9, tuple_add({4,5})) ].
+      ?_assertEqual(9, tuple_add({4,5}))].

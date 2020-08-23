@@ -8,4 +8,5 @@ name = "nifsys"
 crate-type = ["dylib"]
 
 [dependencies]
-rustler_sys = "2.0.0"
+rustler = "0.21.1"
+lazy_static = "1.2.0"
