@@ -28,8 +28,6 @@ call_port(Msg) ->
 init(ExtPrg) ->
     register(complex, self()),
     process_flag(trap_exit, true),
-    io:format("ExtPrg: ~p\n",
-              [ExtPrg]),
     Port = open_port({spawn, ExtPrg}, [{packet, 2}]),
     loop(Port).
 
