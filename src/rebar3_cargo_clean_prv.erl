@@ -37,12 +37,13 @@ format_error(Reason) ->
 -spec do(rebar_state:t()) -> {ok, rebar_state:t()} | {error, string()}.
 do(State) ->
     %% execute for each app
-    [ clean_app(App) || App <- rebar3_cargo_util:get_apps(State) ],
+    [ clean_app(App, State) || App <- rebar3_cargo_util:get_apps(State) ],
     {ok, State}.
 
-clean_app(App) ->
+clean_app(App, State) ->
     PrivDir = rebar3_cargo_util:get_priv_dir(App),
-    Cargo = cargo:init(rebar_app_info:dir(App)),
+    CargoOpts = rebar3_cargo_opts:from_state(State),
+    Cargo = rebar3_cargo_util:cargo_init(App, CargoOpts, false), 
     catch cargo:clean(Cargo),
 
     %% delete priv/crates

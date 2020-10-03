@@ -1,4 +1,4 @@
--module(test_app).
+-module(test_nif_app).
 
 %% API exports
 -export([]).

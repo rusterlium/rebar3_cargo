@@ -1,11 +1,10 @@
-{application, test_app,
+{application, test_nif_app,
  [{description, "An OTP library"},
   {vsn, "0.1.0"},
   {registered, []},
   {applications,
    [kernel,
-    stdlib,
-    find_crate
+    stdlib
    ]},
   {env,[]},
   {modules, []},

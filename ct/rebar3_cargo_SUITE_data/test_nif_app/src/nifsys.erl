@@ -8,7 +8,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 init() ->
-    ?load_nif_from_crate(test_app, ?crate_nifsys, 0).
+    ?load_nif_from_crate(test_nif_app, ?crate_nifsys, 0).
 
 static_atom() ->
     exit(nif_library_not_loaded).
@@ -20,6 +20,6 @@ tuple_add(_X) ->
     exit(nif_library_not_loaded).
 
 short_test_() ->
-    [ ?_assertEqual('static atom from Rust', static_atom()),
+    [ ?_assertEqual('an_atom', static_atom()),
       ?_assertEqual(7, native_add(3,4)),
-      ?_assertEqual(9, tuple_add({4,5})) ].
+      ?_assertEqual(9, tuple_add({4,5}))].

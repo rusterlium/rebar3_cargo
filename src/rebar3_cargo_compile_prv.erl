@@ -65,7 +65,7 @@ do_app(App, State) ->
             lists:member(prod, rebar_state:current_profiles(State))
     end,
 
-    Cargo = cargo:init(rebar_app_info:dir(App), #{ release => IsRelease }),
+    Cargo = rebar3_cargo_util:cargo_init(App, CargoOpts, IsRelease), 
     Artifacts = cargo:build_all(Cargo),
 
     NifLoadPaths =
@@ -85,7 +85,6 @@ do_app(App, State) ->
     ErlOpts1 = ErlOpts ++ rebar_opts:get(Opts, erl_opts, []),
     Opts1 = rebar_opts:set(Opts, erl_opts, ErlOpts1),
 
-    rebar_api:info("Writing crates header...", []),
     write_header(App, NifLoadPaths),
 
     rebar_app_info:opts(App, Opts1).
@@ -104,17 +103,15 @@ do_crate(Artifact, IsRelease, App) ->
     end,
 
     PrivDir = rebar3_cargo_util:get_priv_dir(App),
-    OutDir = filename:join([PrivDir, Name, Version, Type]),
+    OutDir = filename:join([PrivDir, "crates", Name, Version, Type]),
     RelativeLoadPath = filename:join(["crates", Name, Version, Type]),
 
     filelib:ensure_dir(filename:join([OutDir, "dummy"])),
 
-    rebar_api:info("Copying artifacts for ~s ~s...", [Name, Version]),
-
     % TODO: Distinguish nif vs. other cases here?
     [NifLoadPath|_] = lists:map(
         fun (F) ->
-            case cp(F, OutDir) of
+            case filelib:is_regular(F) andalso cp(F, OutDir) of
                 ok ->
                     Filename = filename:basename(F),
                     filename:rootname(filename:join([RelativeLoadPath, Filename]));
@@ -124,8 +121,6 @@ do_crate(Artifact, IsRelease, App) ->
         end,
         Files
     ),
-
-    rebar_api:info("Load path ~s", [NifLoadPath]),
 
     {Name, NifLoadPath}.
 
@@ -180,17 +175,32 @@ get_define(Name, Path) ->
 
 
 -spec cp(file:filename_all(), file:name_all()) -> ok | {error, ignored}.
-cp(Src, Dst) ->
-    Fname = filename:basename(Src),
+cp(Src, DstDir) ->
+    Extension = filename:extension(Src),
+    Fname = filename:basename(Src, Extension),
 
     rebar_api:info("  Copying ~s...", [Fname]),
-    OutPath = filename:join([
-        Dst,
-        filename:basename(Src)
-    ]),
+    % Erlang's load_nif/2 is not prepared to read Mac OS's .dylib extension,
+    % take a shortcut here and rename the extension to .so in that case
+    Dst = maybe_rename_extension(os:type(), Fname, Extension),
+
+    OutPath = filename:join([DstDir, Dst]),
 
     case file:copy(Src, OutPath) of
-        {ok, _} -> ok;
+        {ok, _} ->
+            % Preserve file info
+            {ok, SrcFileInfo} = file:read_file_info(Src),
+            ok = file:write_file_info(OutPath, SrcFileInfo),
+            ok;
         Error -> rebar_api:warn("  Failed to copy ~s: ~p", [Fname, Error])
     end,
     ok.
+
+-spec maybe_rename_extension(OsType :: {unix | win32, atom()},
+                             Name :: file:filename_all(),
+                             Extension :: file:filename_all()) -> file:filename_all().
+maybe_rename_extension({unix, darwin}, Name, <<".dylib">>) ->
+    filename:flatten([Name, ".so"]);
+maybe_rename_extension(_, Name, Extension) ->
+    filename:flatten([Name, Extension]).
+
