@@ -45,3 +45,6 @@ rebar3 as prod compile
 
 # Application structure with Rust crates
 To add crates to an Erlang application, place them in a `crates/` folder, and reference them in a Cargo Workspace.  All crates found within will be built and resulting artifacts will be placed in the `priv/crates/` folder.
+
+# Acknowledgment
+This plugin is based on earlier work by [goertzenator](https://github.com/goertzenator): [rebar3_rust](https://github.com/goertzenator/rebar3_rust)
