@@ -1,5 +1,5 @@
 {application, rebar3_cargo,
- [{description, "A rebar plugin to build Rust crates."},
+ [{description, "A rebar plugin to build Rust crates"},
   {vsn, "0.1.0"},
   {registered, []},
   {applications,
@@ -10,7 +10,8 @@
   {env,[]},
   {modules, []},
 
-  {maintainers, []},
-  {licenses, []},
-  {links, []}
+  {licenses,["Apache-2.0","MIT"]},
+  {links, [{
+      "Github", "https://github.com/rusterlium/erlang-cargo"
+  }]}
  ]}.
