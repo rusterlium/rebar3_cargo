@@ -5,7 +5,6 @@ on:
     pull_request:
         branches: [ master ]
 
-
 jobs:
 
   build:
@@ -20,7 +19,5 @@ jobs:
     - uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
-    - name: Compile
-      run: rebar3 compile
     - name: Run tests
-      run: rebar3 do eunit, ct
+      run: chmod +x ./rebar3 && ./rebar3 do eunit, ct

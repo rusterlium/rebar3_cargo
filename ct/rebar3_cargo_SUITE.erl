@@ -129,7 +129,7 @@ test_release_debug(Config) ->
                                       {win32, _} -> ".exe";
                                       {unix, _} -> ""
                                    end]),
-    {ok, _} = rebar_utils:sh("rebar3 as prod compile", [{cd, AppDir}, {use_stdout, true}]),
+    {ok, _} = rebar_utils:sh("./rebar3 as prod compile", [{cd, AppDir}, {use_stdout, true}]),
     {ok, "release"} = rebar_utils:sh(ReleaseExeName, [{cd, AppDir}, {use_stdout, true}]),
 
     ok.
