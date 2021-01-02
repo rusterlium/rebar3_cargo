@@ -1,0 +1,31 @@
+name: macOS
+
+on:
+  push:
+  pull_request:
+    branches: [master]
+
+jobs:
+  macos:
+    strategy:
+      matrix:
+        os: [macos-11.0, macos-10.15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Install Erlang
+        run: |
+          brew install erlang@22
+      - name: Run tests
+        run: |
+          export PATH="/usr/local/opt/erlang@22/bin:$(pwd)/rebar3:$PATH"
+          chmod +x ./rebar3
+          ./rebar3 do eunit, ct
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: test-results
+          path: _build/test/logs/
