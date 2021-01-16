@@ -5,7 +5,7 @@ authors = ["Daniel Goertzen <daniel.goertzen@gmail.com>"]
 
 [lib]
 name = "nifsys"
-crate-type = ["dylib"]
+crate-type = ["cdylib"]
 
 [dependencies]
 rustler = "0.21.1"
