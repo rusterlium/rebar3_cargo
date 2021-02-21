@@ -12,6 +12,6 @@
 
   {licenses,["Apache-2.0","MIT"]},
   {links, [{
-      "Github", "https://github.com/rusterlium/erlang-cargo"
+      "Github", "https://github.com/rusterlium/rebar3_cargo"
   }]}
  ]}.
