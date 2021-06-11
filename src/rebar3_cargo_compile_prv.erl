@@ -18,20 +18,25 @@
 -spec init(rebar_state:t()) -> {ok, rebar_state:t()}.
 init(State) ->
     Provider = providers:create([
-            {name, ?PROVIDER},               % The 'user friendly' name of the task
-            {namespace, ?NAMESPACE},
-            {module, ?MODULE},               % The module implementation of the task
-            {bare, true},                    % The task can be run by the user, always true
-            {deps, ?DEPS},                   % The list of dependencies
-            {example, "rebar3 rust build"},  % How to use the plugin
-            {opts, []},                      % list of options understood by the plugin
-            {short_desc, "Compile Rust crates"},
-            {desc, "Compile Rust crates"}
+        % The 'user friendly' name of the task
+        {name, ?PROVIDER},
+        {namespace, ?NAMESPACE},
+        % The module implementation of the task
+        {module, ?MODULE},
+        % The task can be run by the user, always true
+        {bare, true},
+        % The list of dependencies
+        {deps, ?DEPS},
+        % How to use the plugin
+        {example, "rebar3 rust build"},
+        % list of options understood by the plugin
+        {opts, []},
+        {short_desc, "Compile Rust crates"},
+        {desc, "Compile Rust crates"}
     ]),
     {ok, rebar_state:add_provider(State, Provider)}.
 
-
--spec format_error(any()) ->  iolist().
+-spec format_error(any()) -> iolist().
 format_error(Reason) ->
     io_lib:format("~p", [Reason]).
 
@@ -39,15 +44,15 @@ format_error(Reason) ->
 do(State) ->
     %% execute for each app
     State1 =
-    case rebar_state:current_app(State) of
-        undefined ->
-            rebar_api:info("No current app, using project apps", []),
-            NewApps =
-            lists:foldl(fun do_app/2, State, rebar_state:project_apps(State)),
-            rebar_state:project_apps(State, NewApps);
-        AppInfo ->
-            rebar_state:current_app(State, do_app(AppInfo, State))
-    end,
+        case rebar_state:current_app(State) of
+            undefined ->
+                rebar_api:info("No current app, using project apps", []),
+                NewApps =
+                    lists:foldl(fun do_app/2, State, rebar_state:project_apps(State)),
+                rebar_state:project_apps(State, NewApps);
+            AppInfo ->
+                rebar_state:current_app(State, do_app(AppInfo, State))
+        end,
 
     {ok, State1}.
 
@@ -56,27 +61,28 @@ do(State) ->
 do_app(App, State) ->
     CargoOpts = rebar3_cargo_opts:from_state(State),
 
-    IsRelease = case rebar3_cargo_opts:mode(CargoOpts) of
-        release ->
-            true;
-        debug ->
-            false;
-        auto ->
-            lists:member(prod, rebar_state:current_profiles(State))
-    end,
+    IsRelease =
+        case rebar3_cargo_opts:mode(CargoOpts) of
+            release ->
+                true;
+            debug ->
+                false;
+            auto ->
+                lists:member(prod, rebar_state:current_profiles(State))
+        end,
 
-    Cargo = rebar3_cargo_util:cargo_init(App, CargoOpts, IsRelease), 
+    Cargo = rebar3_cargo_util:cargo_init(App, CargoOpts, IsRelease),
     Artifacts = cargo:build_all(Cargo),
 
     NifLoadPaths =
-    lists:foldl(
-        fun (Artifact, Map) ->
-            {Name, Path} = do_crate(Artifact, IsRelease, App),
-            Map#{ Name => Path }
-        end,
-        #{},
-        Artifacts
-    ),
+        lists:foldl(
+            fun(Artifact, Map) ->
+                {Name, Path} = do_crate(Artifact, IsRelease, App),
+                Map#{Name => Path}
+            end,
+            #{},
+            Artifacts
+        ),
 
     ErlOpts = get_defines(NifLoadPaths),
 
@@ -89,18 +95,18 @@ do_app(App, State) ->
 
     rebar_app_info:opts(App, Opts1).
 
-
 do_crate(Artifact, IsRelease, App) ->
     Name = cargo_artifact:name(Artifact),
     Version = cargo_artifact:version(Artifact),
     Files = cargo_artifact:filenames(Artifact),
 
-    Type = case IsRelease of
-        true ->
-            "release";
-        false ->
-            "debug"
-    end,
+    Type =
+        case IsRelease of
+            true ->
+                "release";
+            false ->
+                "debug"
+        end,
 
     PrivDir = rebar3_cargo_util:get_priv_dir(App),
     OutDir = filename:join([PrivDir, "crates", Name, Version, Type]),
@@ -109,8 +115,8 @@ do_crate(Artifact, IsRelease, App) ->
     filelib:ensure_dir(filename:join([OutDir, "dummy"])),
 
     % TODO: Distinguish nif vs. other cases here?
-    [NifLoadPath|_] = lists:map(
-        fun (F) ->
+    [NifLoadPath | _] = lists:map(
+        fun(F) ->
             case filelib:is_regular(F) andalso cp(F, OutDir) of
                 ok ->
                     Filename = filename:basename(F),
@@ -124,27 +130,34 @@ do_crate(Artifact, IsRelease, App) ->
 
     {Name, NifLoadPath}.
 
-
--spec write_header(rebar_app_info:t(), #{ binary() => file:filename_all() }) -> ok.
+-spec write_header(rebar_app_info:t(), #{binary() => file:filename_all()}) -> ok.
 write_header(App, NifLoadPaths) ->
     Define = "CRATES_HRL",
     FuncDefine = "FUNC_CRATES_HRL",
 
     Hrl = [
-        "-ifndef(", Define, ").\n",
-        "-define(", Define, ", 1).\n",
+        "-ifndef(",
+        Define,
+        ").\n",
+        "-define(",
+        Define,
+        ", 1).\n",
         [
             io_lib:format("-define(crate_~s, ~p).~n", [Name, undefined])
-            || Name <- maps:keys(NifLoadPaths)
+         || Name <- maps:keys(NifLoadPaths)
         ],
         "-endif.\n"
-        "-ifndef(", FuncDefine, ").\n",
-        "-define(", FuncDefine, ", 1).\n",
+        "-ifndef(",
+        FuncDefine,
+        ").\n",
+        "-define(",
+        FuncDefine,
+        ", 1).\n",
         "-define(load_nif_from_crate(__APP,__CRATE,__INIT),"
-            "(fun()->"
-            "__PATH=filename:join(code:priv_dir(__APP),__CRATE),"
-            "erlang:load_nif(__PATH,__INIT)"
-            "end)()"
+        "(fun()->"
+        "__PATH=filename:join(code:priv_dir(__APP),__CRATE),"
+        "erlang:load_nif(__PATH,__INIT)"
+        "end)()"
         ").\n",
         "-endif.\n"
     ],
@@ -155,14 +168,10 @@ write_header(App, NifLoadPaths) ->
 
     file:write_file(OutPath, Hrl).
 
-
 get_defines(NifLoadPaths) ->
-    Opts = [
-        get_define(Name, Path) || {Name, Path} <- maps:to_list(NifLoadPaths)
-    ],
+    Opts = [get_define(Name, Path) || {Name, Path} <- maps:to_list(NifLoadPaths)],
 
     [{d, 'CRATES_HRL', 1} | Opts].
-
 
 get_define(Name, Path) ->
     D = binary_to_atom(
@@ -172,7 +181,6 @@ get_define(Name, Path) ->
 
     % TODO: This must be relative to code:priv_dir
     {d, D, binary_to_list(list_to_binary([Path]))}.
-
 
 -spec cp(file:filename_all(), file:name_all()) -> ok | {error, ignored}.
 cp(Src, DstDir) ->
@@ -192,15 +200,17 @@ cp(Src, DstDir) ->
             {ok, SrcFileInfo} = file:read_file_info(Src),
             ok = file:write_file_info(OutPath, SrcFileInfo),
             ok;
-        Error -> rebar_api:warn("  Failed to copy ~s: ~p", [Fname, Error])
+        Error ->
+            rebar_api:warn("  Failed to copy ~s: ~p", [Fname, Error])
     end,
     ok.
 
--spec maybe_rename_extension(OsType :: {unix | win32, atom()},
-                             Name :: file:filename_all(),
-                             Extension :: file:filename_all()) -> file:filename_all().
+-spec maybe_rename_extension(
+    OsType :: {unix | win32, atom()},
+    Name :: file:filename_all(),
+    Extension :: file:filename_all()
+) -> file:filename_all().
 maybe_rename_extension({unix, darwin}, Name, <<".dylib">>) ->
     filename:flatten([Name, ".so"]);
 maybe_rename_extension(_, Name, Extension) ->
     filename:flatten([Name, Extension]).
-

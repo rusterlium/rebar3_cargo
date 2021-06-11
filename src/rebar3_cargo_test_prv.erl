@@ -17,30 +17,35 @@
 -spec init(rebar_state:t()) -> {ok, rebar_state:t()}.
 init(State) ->
     Provider = providers:create([
-            {name, ?PROVIDER},               % The 'user friendly' name of the task
-            {namespace, ?NAMESPACE},
-            {module, ?MODULE},               % The module implementation of the task
-            {bare, true},                    % The task can be run by the user, always true
-            {deps, ?DEPS},                   % The list of dependencies
-            {example, "rebar3 cargo test"},  % How to use the plugin
-            {opts, []},                      % list of options understood by the plugin
-            {short_desc, "Test Rust crates"},
-            {desc, "Test Rust crates"}
+        % The 'user friendly' name of the task
+        {name, ?PROVIDER},
+        {namespace, ?NAMESPACE},
+        % The module implementation of the task
+        {module, ?MODULE},
+        % The task can be run by the user, always true
+        {bare, true},
+        % The list of dependencies
+        {deps, ?DEPS},
+        % How to use the plugin
+        {example, "rebar3 cargo test"},
+        % list of options understood by the plugin
+        {opts, []},
+        {short_desc, "Test Rust crates"},
+        {desc, "Test Rust crates"}
     ]),
     {ok, rebar_state:add_provider(State, Provider)}.
 
-
--spec format_error(any()) ->  iolist().
+-spec format_error(any()) -> iolist().
 format_error(Reason) ->
     io_lib:format("~p", [Reason]).
 
 -spec do(rebar_state:t()) -> {ok, rebar_state:t()} | {error, string()}.
 do(State) ->
     %% execute for each app
-    [ test_app(App, State) || App <- rebar3_cargo_util:get_apps(State) ],
+    [test_app(App, State) || App <- rebar3_cargo_util:get_apps(State)],
     {ok, State}.
 
 test_app(App, State) ->
     CargoOpts = rebar3_cargo_opts:from_state(State),
-    Cargo = rebar3_cargo_util:cargo_init(App, CargoOpts, false), 
+    Cargo = rebar3_cargo_util:cargo_init(App, CargoOpts, false),
     cargo:test_all(Cargo).

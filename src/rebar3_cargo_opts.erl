@@ -27,21 +27,23 @@ from_state(State) ->
     Release = proplists:get_value(release, CargoOpts),
     Debug = proplists:get_value(debug, CargoOpts),
 
-    Mode = case {Release, Debug} of
-        {true, _} ->
-            release;
-        {_, true} ->
-            debug;
-        _ ->
-            auto
-    end,
+    Mode =
+        case {Release, Debug} of
+            {true, _} ->
+                release;
+            {_, true} ->
+                debug;
+            _ ->
+                auto
+        end,
 
-    #opts{mode = Mode,
-          src_dir = proplists:get_value(src_dir, CargoOpts, ?DEFAULT_SRC_DIR)}.
+    #opts{
+        mode = Mode,
+        src_dir = proplists:get_value(src_dir, CargoOpts, ?DEFAULT_SRC_DIR)
+    }.
 
 -spec mode(t()) -> mode().
-mode(#opts{mode=Mode}) -> Mode.
+mode(#opts{mode = Mode}) -> Mode.
 
 -spec src_dir(t()) -> string().
-src_dir(#opts{src_dir=SrcDir}) -> SrcDir.
-
+src_dir(#opts{src_dir = SrcDir}) -> SrcDir.
