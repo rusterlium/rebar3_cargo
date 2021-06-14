@@ -42,10 +42,10 @@ format_error(Reason) ->
 -spec do(rebar_state:t()) -> {ok, rebar_state:t()} | {error, string()}.
 do(State) ->
     %% execute for each app
-    [test_app(App, State) || App <- rebar3_cargo_util:get_apps(State)],
+    [test_app(App) || App <- rebar3_cargo_util:get_apps(State)],
     {ok, State}.
 
-test_app(App, State) ->
-    CargoOpts = rebar3_cargo_opts:from_state(State),
+test_app(App) ->
+    CargoOpts = rebar3_cargo_opts:from_app(App),
     Cargo = rebar3_cargo_util:cargo_init(App, CargoOpts, false),
     cargo:test_all(Cargo).
