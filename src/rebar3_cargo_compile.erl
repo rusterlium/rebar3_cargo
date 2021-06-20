@@ -52,7 +52,7 @@ do_compile_app(CargoOpts, App, TargetApp, State) ->
     ).
 
 patch_app(App, TargetApp) ->
-    AppName = binary_to_atom(rebar_app_info:name(TargetApp)),
+    AppName = binary_to_atom(rebar_app_info:name(TargetApp), utf8),
     ErlOpts = [{d, 'CARGO_LOAD_APP', AppName}],
 
     Opts = rebar_app_info:opts(App),
