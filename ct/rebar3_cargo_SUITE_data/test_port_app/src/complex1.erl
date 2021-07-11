@@ -2,11 +2,11 @@
 -export([start/0,start/1, stop/0, init/1]).
 -export([foo/1, bar/1]).
 
--include("crates.hrl").
+-include("cargo.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 start() ->
-    start(filename:join(code:priv_dir(test_port_app), ?crate_erl_comm)).
+    start(filename:join([code:priv_dir(?CARGO_LOAD_APP), "erl_comm", "erl_comm"])).
 
 start(ExtPrg) ->
     spawn(?MODULE, init, [ExtPrg]).
