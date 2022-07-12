@@ -6,7 +6,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 start() ->
-    start(filename:join([code:priv_dir(?CARGO_LOAD_APP), "erl_comm", "erl_comm"])).
+    start(filename:join([code:priv_dir(?CARGO_LOAD_APP), "crates", "erl_comm", "erl_comm"])).
 
 start(ExtPrg) ->
     spawn(?MODULE, init, [ExtPrg]).
