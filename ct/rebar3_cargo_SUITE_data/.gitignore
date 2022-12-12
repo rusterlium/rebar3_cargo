@@ -1,1 +1,5 @@
 target/
+rebar.lock
+Cargo.lock
+priv/
+cargo.hrl

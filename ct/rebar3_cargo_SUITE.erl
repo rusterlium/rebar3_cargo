@@ -97,8 +97,6 @@ test_test_port_app(Config) ->
             "priv",
             "crates",
             "erl_comm",
-            "0.1.0",
-            "release",
             "erl_comm" ++
                 case os:type() of
                     {win32, _} -> ".exe";
@@ -145,10 +143,9 @@ test_fails_test(Config) ->
 test_release_debug(Config) ->
     #{priv_dir := PrivDir} = maps:from_list(Config),
     AppDir = filename:join(PrivDir, "release_debug"),
-    Prefix = filename:join([AppDir, "priv", "crates", "build_type", "0.1.0"]),
+    Prefix = filename:join([AppDir, "priv", "crates", "build_type"]),
     DebugExeName = filename:join([
         Prefix,
-        "debug",
         "build_type" ++
             case os:type() of
                 {win32, _} -> ".exe";
@@ -160,7 +157,6 @@ test_release_debug(Config) ->
 
     ReleaseExeName = filename:join([
         Prefix,
-        "release",
         "build_type" ++
             case os:type() of
                 {win32, _} -> ".exe";
