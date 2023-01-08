@@ -122,6 +122,8 @@ cp(Src, DstDir) ->
 
     rebar_api:info("  Copying ~s to ~s...", [Fname, OutPath]),
 
+    file:delete(OutPath),
+
     case file:copy(Src, OutPath) of
         {ok, _} ->
             % Preserve file info
